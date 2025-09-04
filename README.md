@@ -34,9 +34,10 @@ Everyone on your team should add their name along with a link to their GitHub
 your repo access and to practice PR'ing with your team *before* you start
 coding!
 
-- Banto Klára: [GitHub](https://github.com/bantoklara) / [LinkedIn](https://www.linkedin.com/in/banto-laczi-klara/)
+- Banto Klára : [GitHub](https://github.com/bantoklara) / [LinkedIn](https://www.linkedin.com/in/banto-laczi-klara/)
 - Tibamwenda Anthony : [GitHub](https://github.com/AskTiba) / [LinkedIn](https://www.linkedin.com/in/tibamwenda-anthony-64144820b/)
-- Henok Hailemariam: [GitHub](https://github.com/henokkhm) / [LinkedIn](https://www.linkedin.com/in/henokkhm)
+- Henok Hailemariam : [GitHub](https://github.com/henokkhm) / [LinkedIn](https://www.linkedin.com/in/henokkhm)
+- Yusuf Mohsen : [GitHub](https://github.com/yusufmohsiin) / [LinkedIn](https://www.linkedin.com/in/yusuf-mohsiin/) 
 
    ...
 - Teammate name #n: [GitHub](https://github.com/ghaccountname) / [LinkedIn](https://linkedin.com/in/liaccountname)

@@ -37,7 +37,8 @@ coding!
 - Banto Klára : [GitHub](https://github.com/bantoklara) / [LinkedIn](https://www.linkedin.com/in/banto-laczi-klara/)
 - Tibamwenda Anthony : [GitHub](https://github.com/AskTiba) / [LinkedIn](https://www.linkedin.com/in/tibamwenda-anthony-64144820b/)
 - Henok Hailemariam : [GitHub](https://github.com/henokkhm) / [LinkedIn](https://www.linkedin.com/in/henokkhm)
-- Yusuf Mohsen : [GitHub](https://github.com/yusufmohsiin) / [LinkedIn](https://www.linkedin.com/in/yusuf-mohsiin/) 
+- Yusuf Mohsen : [GitHub](https://github.com/yusufmohsiin) / [LinkedIn](https://www.linkedin.com/in/yusuf-mohsiin/)
+- Mohamed Ouederni : [GitHub](https://github.com/9-barristanselmy-9) / [LinkedIn](https://www.linkedin.com/in/mohamed-ouederni-0bb11ab4) 
 
    ...
 - Teammate name #n: [GitHub](https://github.com/ghaccountname) / [LinkedIn](https://linkedin.com/in/liaccountname)

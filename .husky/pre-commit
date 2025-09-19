@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run linting on client
+echo "Running ESLint on client..."
+npm run lint --workspace=client
+
+# Check server syntax
+echo "Checking server syntax..."
+node --check server/src/server.js
+
+# Run tests if they exist
+echo "Running tests..."
+npm run test --workspace=server --if-present
+
+echo "Pre-commit checks completed successfully!"

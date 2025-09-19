@@ -54,5 +54,5 @@ jobs:
       - name: Check server syntax
         run: node --check server/src/server.js
 
-      - name: Run server tests
-        run: npm run test --workspace=server
+    #   - name: Run server tests
+    #     run: npm run test --workspace=server

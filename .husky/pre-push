@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running pre-push checks..."
+
+# Run all frontend checks
+echo "🔍 Running frontend checks..."
+npm run lint --workspace=client
+if [ $? -ne 0 ]; then
+  echo "❌ Frontend linting failed"
+  exit 1
+fi
+
+npm run build --workspace=client
+if [ $? -ne 0 ]; then
+  echo "❌ Frontend build failed"
+  exit 1
+fi
+
+# Run all backend checks
+echo "🔍 Running backend checks..."
+node --check server/src/server.js
+if [ $? -ne 0 ]; then
+  echo "❌ Server syntax check failed"
+  exit 1
+fi
+
+npm run test --workspace=server --if-present
+if [ $? -ne 0 ]; then
+  echo "❌ Server tests failed"
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed successfully!"
+echo "🚀 Ready to push to remote repository"

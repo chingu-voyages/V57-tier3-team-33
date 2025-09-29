@@ -1,9 +1,7 @@
 export const parseLinkHeader = (link) => {
-    if (!link) return {};
-
     const links = {};
-    const parts = link.split(", ");
-
+    const parts = link ? link.split(", ") : [];
+    
     parts.forEach((part) => {
         const sections = part.split(";");
 
@@ -13,7 +11,7 @@ export const parseLinkHeader = (link) => {
         const name = sections[1].replace(/rel="(.*)"/, "$1").trim();
 
         const urlOjb = new URL(url);
-        const page = urlOjb.searchParams.get("page")
+        const page = urlOjb.searchParams.get("page");
         
         links[name] = page ? parseInt(page) : null;
     });

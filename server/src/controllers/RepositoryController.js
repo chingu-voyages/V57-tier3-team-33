@@ -21,7 +21,7 @@ export const getPullRequestsOfRepository = async (request, response, next) => {
     const repo = request.params.repo;
     const owner = request.params.owner;
     const state = request.query.state || 'open';
-    const page = request.query.page || 1;
+    const page = parseInt(request.query.page) || 1;
     const perPage = Math.min(parseInt(request.query.perPage, 10) || 30, 100);
 
     try {

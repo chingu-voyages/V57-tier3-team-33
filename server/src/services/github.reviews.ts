@@ -7,6 +7,7 @@ import {
   GitHubServiceOptions,
   GitHubError,
   GitHubRepo,
+  GitHubPullRequest,
   FailedOperation,
   ReviewsWithErrors,
   RepoWithReviewsAndErrors
@@ -91,7 +92,7 @@ async function getRepoReviews(
     for (let i = 0; i < prs.length; i += batchSize) {
       const batch = prs.slice(i, i + batchSize);
       
-      const batchPromises = batch.map(async (pr) => {
+      const batchPromises = batch.map(async (pr: any) => {
         try {
           const reviews = await getPullRequestReviews(owner, repo, pr.number, options);
           successCount++;
@@ -111,8 +112,8 @@ async function getRepoReviews(
       });
       
       const batchResults = await Promise.all(batchPromises);
-      const successfulResults = batchResults.filter(result => result.success);
-      const flatResults = successfulResults.flatMap(result => result.reviews);
+      const successfulResults = batchResults.filter((result: any) => result.success);
+      const flatResults = successfulResults.flatMap((result: any) => result.reviews);
       allReviews.push(...flatResults);
       
       // Small delay between batches

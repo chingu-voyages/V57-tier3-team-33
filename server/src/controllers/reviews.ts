@@ -5,7 +5,14 @@ import {
   getAllReviewsForUser,
   getReviewsByUser
 } from "../services/github.reviews";
+import { getGitHubRateLimit } from "../services/github.open.prs";
 import { ReviewState, GitHubError } from "../types/github.types";
+import { 
+  formatPRReviewResponse,
+  formatRepoReviewResponse,
+  formatUserReviewResponse,
+  formatReviewStatsResponse
+} from "../utils/reviewFormatter";
 
 
 export async function getPRReviews(req: Request, res: Response) {
@@ -17,11 +24,9 @@ export async function getPRReviews(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    // Validate state parameter
     const validStates: ReviewState[] = ['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'PENDING', 'DISMISSED', 'all'];
     const reviewState = validStates.includes(state as ReviewState) ? state as ReviewState : 'all';
     
-    // Validate pagination parameters
     const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
     const pullNum = parseInt(pullNumber);
@@ -34,31 +39,29 @@ export async function getPRReviews(req: Request, res: Response) {
     }
 
     const options = { perPage, page: pageNum };
-    let reviews = await getPullRequestReviews(username, repo, pullNum, options);
     
-    // Filter by state if not 'all'
-    if (reviewState !== 'all') {
-      reviews = reviews.filter(review => review.state === reviewState);
-    }
+    const [reviews, rateLimit] = await Promise.all([
+      getPullRequestReviews(username, repo, pullNum, options),
+      getGitHubRateLimit()
+    ]);
     
+    const filteredReviews = reviewState !== 'all' 
+      ? reviews.filter(review => review.state === reviewState)
+      : reviews;
+    
+    const response = formatPRReviewResponse({
+      repo,
+      pullNumber: pullNum,
+      reviews: filteredReviews,
+      pageNum,
+      perPage,
+      reviewState,
+      username
+    });
+
     res.status(200).json({
-      success: true,
-      data: {
-        repo,
-        pull_request_number: pullNum,
-        reviews
-      },
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_reviews: reviews.length
-      },
-      filters: {
-        state: reviewState,
-        username,
-        repo,
-        pull_request_number: pullNum
-      }
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getPRReviews:", error);
@@ -85,39 +88,36 @@ export async function getUserRepoReviews(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    // Validate state parameter
     const validStates: ReviewState[] = ['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'PENDING', 'DISMISSED', 'all'];
     const reviewState = validStates.includes(state as ReviewState) ? state as ReviewState : 'all';
     
-    // Validate pagination parameters
     const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const reviewsWithErrors = await getRepoReviews(username, repo, reviewState, options);
     
+    const [reviewsWithErrors, rateLimit] = await Promise.all([
+      getRepoReviews(username, repo, reviewState, options),
+      getGitHubRateLimit()
+    ]);
+    
+    const repoWithReviewsAndErrors = {
+      repo,
+      ...reviewsWithErrors
+    };
+    
+    const response = formatRepoReviewResponse({
+      repo,
+      reviewsWithErrors: repoWithReviewsAndErrors,
+      pageNum,
+      perPage,
+      reviewState,
+      username
+    });
+
     res.status(200).json({
-      success: true,
-      data: {
-        repo,
-        reviews: reviewsWithErrors.reviews
-      },
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_reviews: reviewsWithErrors.reviews.length
-      },
-      filters: {
-        state: reviewState,
-        username,
-        repo
-      },
-      statistics: {
-        success_count: reviewsWithErrors.success_count,
-        failure_count: reviewsWithErrors.failure_count,
-        total_attempts: reviewsWithErrors.success_count + reviewsWithErrors.failure_count
-      },
-      failed_operations: reviewsWithErrors.failed_operations
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getUserRepoReviews:", error);
@@ -144,42 +144,30 @@ export async function getUserReviews(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    // Validate state parameter
     const validStates: ReviewState[] = ['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'PENDING', 'DISMISSED', 'all'];
     const reviewState = validStates.includes(state as ReviewState) ? state as ReviewState : 'all';
     
-    // Validate pagination parameters
     const perPage = Math.min(Math.max(parseInt(per_page as string) || 10, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const reposWithReviewsAndErrors = await getAllReviewsForUser(username, reviewState, options);
     
-    // Calculate totals across all repositories
-    const totalReviews = reposWithReviewsAndErrors.reduce((sum, repo) => sum + repo.reviews.length, 0);
-    const totalSuccessCount = reposWithReviewsAndErrors.reduce((sum, repo) => sum + repo.success_count, 0);
-    const totalFailureCount = reposWithReviewsAndErrors.reduce((sum, repo) => sum + repo.failure_count, 0);
-    const allFailedOperations = reposWithReviewsAndErrors.flatMap(repo => repo.failed_operations);
+    const [reposWithReviewsAndErrors, rateLimit] = await Promise.all([
+      getAllReviewsForUser(username, reviewState, options),
+      getGitHubRateLimit()
+    ]);
     
+    const response = formatUserReviewResponse({
+      reposWithReviewsAndErrors,
+      pageNum,
+      perPage,
+      reviewState,
+      username
+    });
+
     res.status(200).json({
-      success: true,
-      data: reposWithReviewsAndErrors,
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_repos: reposWithReviewsAndErrors.length,
-        total_reviews: totalReviews
-      },
-      filters: {
-        state: reviewState,
-        username
-      },
-      statistics: {
-        success_count: totalSuccessCount,
-        failure_count: totalFailureCount,
-        total_attempts: totalSuccessCount + totalFailureCount
-      },
-      failed_operations: allFailedOperations
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getUserReviews:", error);
@@ -206,16 +194,18 @@ export async function getReviewsByReviewer(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    // Validate state parameter
     const validStates: ReviewState[] = ['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'PENDING', 'DISMISSED', 'all'];
     const reviewState = validStates.includes(state as ReviewState) ? state as ReviewState : 'all';
     
-    // Validate pagination parameters
     const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const reviewsWithErrors = await getReviewsByUser(reviewer, reviewState, options);
+    
+    const [reviewsWithErrors, rateLimit] = await Promise.all([
+      getReviewsByUser(reviewer, reviewState, options),
+      getGitHubRateLimit()
+    ]);
     
     res.status(200).json({
       success: true,
@@ -237,7 +227,8 @@ export async function getReviewsByReviewer(req: Request, res: Response) {
         failure_count: reviewsWithErrors.failure_count,
         total_attempts: reviewsWithErrors.success_count + reviewsWithErrors.failure_count
       },
-      failed_operations: reviewsWithErrors.failed_operations
+      failed_operations: reviewsWithErrors.failed_operations,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getReviewsByReviewer:", error);
@@ -265,15 +256,15 @@ export async function getReviewStats(req: Request, res: Response) {
     let totalFailureCount = 0;
     let allFailedOperations: any[] = [];
     
+    const rateLimit = await getGitHubRateLimit();
+    
     if (repo) {
-      // Get reviews for specific repository
       const reviewsWithErrors = await getRepoReviews(username, repo as string, 'all');
       allReviews = reviewsWithErrors.reviews;
       totalSuccessCount = reviewsWithErrors.success_count;
       totalFailureCount = reviewsWithErrors.failure_count;
       allFailedOperations = reviewsWithErrors.failed_operations;
     } else {
-      // Get reviews across all user repositories
       const repoReviews = await getAllReviewsForUser(username, 'all');
       allReviews = repoReviews.flatMap(r => r.reviews);
       totalSuccessCount = repoReviews.reduce((sum, repo) => sum + repo.success_count, 0);
@@ -281,29 +272,18 @@ export async function getReviewStats(req: Request, res: Response) {
       allFailedOperations = repoReviews.flatMap(repo => repo.failed_operations);
     }
 
-    // Calculate statistics
-    const stats = {
-      total_reviews: allReviews.length,
-      approved: allReviews.filter(r => r.state === 'APPROVED').length,
-      changes_requested: allReviews.filter(r => r.state === 'CHANGES_REQUESTED').length,
-      commented: allReviews.filter(r => r.state === 'COMMENTED').length,
-      pending: allReviews.filter(r => r.state === 'PENDING').length,
-      dismissed: allReviews.filter(r => r.state === 'DISMISSED').length
-    };
+    const response = formatReviewStatsResponse({
+      username,
+      repo: repo as string,
+      allReviews,
+      totalSuccessCount,
+      totalFailureCount,
+      allFailedOperations
+    });
 
     res.status(200).json({
-      success: true,
-      data: {
-        username,
-        ...(repo && { repo }),
-        statistics: stats,
-        operation_stats: {
-          success_count: totalSuccessCount,
-          failure_count: totalFailureCount,
-          total_attempts: totalSuccessCount + totalFailureCount
-        },
-        failed_operations: allFailedOperations
-      }
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getReviewStats:", error);

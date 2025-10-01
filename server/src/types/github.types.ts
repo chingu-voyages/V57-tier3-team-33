@@ -133,3 +133,119 @@ export interface RepoWithReviewsAndErrors {
   success_count: number;
   failure_count: number;
 }
+
+// Response formatting interfaces
+export interface Pagination {
+  page: number;
+  per_page: number;
+  total_pages: number;
+  total_records: number;
+}
+
+export interface Filters {
+  state: string;
+  username: string;
+}
+
+export interface PullRequestResponseFormat {
+  success: boolean;
+  data: RepoWithPRs[];
+  pagination: Pagination;
+  filters: Filters;
+}
+
+// Review response formatting interfaces
+export interface ReviewPagination {
+  page: number;
+  per_page: number;
+  total_pages: number;
+  total_records: number;
+}
+
+export interface ReviewFilters {
+  state: string;
+  username: string;
+  repo?: string;
+  pull_request_number?: number;
+}
+
+export interface ReviewStatistics {
+  success_count: number;
+  failure_count: number;
+  total_attempts: number;
+}
+
+export interface PRReviewResponseFormat {
+  success: boolean;
+  data: {
+    repo: string;
+    pull_request_number: number;
+    reviews: FormattedReview[];
+  };
+  pagination: ReviewPagination;
+  filters: ReviewFilters;
+}
+
+export interface RepoReviewResponseFormat {
+  success: boolean;
+  data: {
+    repo: string;
+    reviews: FormattedReview[];
+  };
+  pagination: ReviewPagination;
+  filters: ReviewFilters;
+  statistics: ReviewStatistics;
+  failed_operations: FailedOperation[];
+}
+
+export interface UserReviewResponseFormat {
+  success: boolean;
+  data: RepoWithReviewsAndErrors[];
+  pagination: ReviewPagination;
+  filters: ReviewFilters;
+  statistics: ReviewStatistics;
+  failed_operations: FailedOperation[];
+}
+
+export interface ReviewStatsResponseFormat {
+  success: boolean;
+  data: {
+    username: string;
+    repo?: string;
+    statistics: {
+      total_reviews: number;
+      approved: number;
+      changes_requested: number;
+      commented: number;
+      pending: number;
+      dismissed: number;
+    };
+    operation_stats: ReviewStatistics;
+    failed_operations: FailedOperation[];
+  };
+}
+
+// Repository PR Response Format
+export interface RepoPRResponseFormat {
+  success: boolean;
+  data: {
+    repo: string;
+    pullRequests: FormattedPullRequest[];
+  };
+  pagination: Pagination;
+  filters: {
+    state: PRState;
+    username: string;
+    repo: string;
+  };
+}
+
+// User Repositories Response Format
+export interface UserRepositoriesResponseFormat {
+  success: boolean;
+  data: GitHubRepo[];
+  pagination: Pagination;
+  filters: {
+    username: string;
+  };
+}

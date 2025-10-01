@@ -9,27 +9,113 @@ import {
   GitHubError
 } from "../types/github.types";
 
-const octokit = new Octokit();
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN,
+});
 
+/**
+ * Maximum number of repositories to process for pull requests and reviews.
+ * This limit helps improve performance and reduces API rate limiting issues.
+ * Processing is limited to the first 200 repositories sorted by most recently updated.
+ */
+const MAX_REPOSITORIES_TO_PROCESS = 200;
 
-  // Get user repositories with proper error handling and typing
- 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function isRateLimitError(error: any): boolean {
+  const status = error?.status || error?.response?.status;
+  const headers = error?.response?.headers || {};
+  const remaining = headers['x-ratelimit-remaining'] ?? headers['X-RateLimit-Remaining'];
+  const message: string = (error?.message || '').toLowerCase();
+  return status === 403 && (remaining === '0' || message.includes('rate limit') || message.includes('quota exhausted'));
+}
+
+async function getUserRepoCount(username: string): Promise<number> {
+  try {
+    const response = await octokit.request("GET /users/{username}", {
+      username
+    });
+    
+    const actualCount = response.data.public_repos;
+    const limitedCount = Math.min(actualCount, MAX_REPOSITORIES_TO_PROCESS);
+    
+    console.log(`User ${username} has ${actualCount} public repos, returning ${limitedCount} (limited to ${MAX_REPOSITORIES_TO_PROCESS})`);
+    
+    return limitedCount;
+  } catch (error: any) {
+    const githubError: GitHubError = {
+      message: error.message || "Error fetching user repository count",
+      status: error.status,
+      documentation_url: error.response?.data?.documentation_url
+    };
+    
+    console.error("Error fetching user repository count:", githubError);
+    throw githubError;
+  }
+}
+
 async function getUserRepos(
   username: string, 
   options: GitHubServiceOptions = {}
 ): Promise<GitHubRepo[]> {
   try {
-    const { perPage = 30, page = 1 } = options;
+    const { perPage = 100, page = 1 } = options;
+    const allRepos: GitHubRepo[] = [];
+    let currentPage = page;
+    let stopDueToRateLimit = false;
     
-    const response = await octokit.request("GET /users/{username}/repos", {
-      username,
-      per_page: perPage,
-      page,
-      sort: "updated",
-      direction: "desc"
-    });
+    while (allRepos.length < MAX_REPOSITORIES_TO_PROCESS) {
+      try {
+        const response = await octokit.request("GET /users/{username}/repos", {
+          username,
+          per_page: Math.min(perPage, MAX_REPOSITORIES_TO_PROCESS - allRepos.length),
+          page: currentPage,
+          sort: "updated",
+          direction: "desc"
+        });
+        
+        const repos = response.data as GitHubRepo[];
+        
+        if (repos.length === 0) {
+          break;
+        }
+        
+        allRepos.push(...repos);
+        
+        if (repos.length < perPage) {
+          break;
+        }
+        
+        currentPage++;
+      } catch (err: any) {
+        if (isRateLimitError(err)) {
+          console.warn(`Rate limit encountered while fetching repos for ${username}. Retrying once, then ending loop.`);
+          await sleep(1000);
+          try {
+            const retryResponse = await octokit.request("GET /users/{username}/repos", {
+              username,
+              per_page: Math.min(perPage, MAX_REPOSITORIES_TO_PROCESS - allRepos.length),
+              page: currentPage,
+              sort: "updated",
+              direction: "desc"
+            });
+            const retryRepos = retryResponse.data as GitHubRepo[];
+            allRepos.push(...retryRepos);
+          } catch (retryErr: any) {
+            console.warn(`Retry after rate limit failed for ${username}:`, retryErr?.message || retryErr);
+          }
+          stopDueToRateLimit = true;
+          break;
+        } else {
+          throw err;
+        }
+      }
+    }
     
-    return response.data as GitHubRepo[];
+    const limitedRepos = allRepos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
+    console.log(`Fetched ${limitedRepos.length} repositories (limited to ${MAX_REPOSITORIES_TO_PROCESS}) for user ${username}${stopDueToRateLimit ? ' - stopped due to rate limit' : ''}`);
+    
+    return limitedRepos;
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || "Error fetching repositories",
@@ -42,9 +128,6 @@ async function getUserRepos(
   }
 }
 
-
-  // Get pull requests for a specific repository with configurable state
- 
 async function getRepoPRs(
   owner: string, 
   repo: string, 
@@ -88,9 +171,6 @@ async function getRepoPRs(
   }
 }
 
-
-  // Get all pull requests for a user across all their repositories
- 
 async function getAllPRsForUser(
   username: string, 
   state: PRState = "open",
@@ -98,20 +178,37 @@ async function getAllPRsForUser(
 ): Promise<RepoWithPRs[]> {
   try {
     const repos = await getUserRepos(username, options);
+    console.log("repos size", repos.length);
+    
+    const limitedRepos = repos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
+    console.log("Processing limited repos:", limitedRepos.length, "out of", repos.length);
+    
     const allPRs: RepoWithPRs[] = [];
     
-    // Process repositories in batches to avoid rate limiting
     const batchSize = 5;
-    for (let i = 0; i < repos.length; i += batchSize) {
-      const batch = repos.slice(i, i + batchSize);
+    let stopDueToRateLimit = false;
+    for (let i = 0; i < limitedRepos.length; i += batchSize) {
+      const batch = limitedRepos.slice(i, i + batchSize);
       
       const batchPromises = batch.map(async (repo) => {
         try {
           const prs = await getRepoPRs(username, repo.name, state, options);
           return prs.length > 0 ? { repo: repo.name, pullRequests: prs } : null;
         } catch (error) {
-          
-          console.warn(`Failed to fetch PRs for ${repo.name}:`, error);
+          if (isRateLimitError(error)) {
+            console.warn(`Rate limit encountered on repo ${repo.name}. Retrying once, then stopping further processing.`);
+            await sleep(1000);
+            try {
+              const prs = await getRepoPRs(username, repo.name, state, options);
+              stopDueToRateLimit = true;
+              return prs.length > 0 ? { repo: repo.name, pullRequests: prs } : null;
+            } catch (retryErr) {
+              stopDueToRateLimit = true;
+              console.warn(`Retry failed for repo ${repo.name}:`, (retryErr as any)?.message || retryErr);
+              return null;
+            }
+          }
+          console.warn(`Failed to fetch PRs for ${repo.name}:`, (error as any)?.message || error);
           return null;
         }
       });
@@ -120,9 +217,12 @@ async function getAllPRsForUser(
       const validResults = batchResults.filter((result): result is RepoWithPRs => result !== null);
       allPRs.push(...validResults);
       
-      // Small delay between batches 
-      if (i + batchSize < repos.length) {
+      if (i + batchSize < limitedRepos.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (stopDueToRateLimit) {
+        console.warn("Stopping PR aggregation due to rate limit after one retry attempt.");
+        break;
       }
     }
     
@@ -145,10 +245,42 @@ const getOpenRepoPrs = (owner: string, repo: string, options?: GitHubServiceOpti
 const getAllOpenPRsForUser = (username: string, options?: GitHubServiceOptions) => 
   getAllPRsForUser(username, "open", options);
 
+async function getGitHubRateLimit(): Promise<{
+  limit: number;
+  remaining: number;
+  reset: number;
+  used: number;
+  resetDate: string;
+}> {
+  try {
+    const response = await octokit.request("GET /rate_limit");
+    const rateLimit = response.data.rate;
+    
+    return {
+      limit: rateLimit.limit,
+      remaining: rateLimit.remaining,
+      reset: rateLimit.reset,
+      used: rateLimit.used,
+      resetDate: new Date(rateLimit.reset * 1000).toISOString()
+    };
+  } catch (error: any) {
+    console.error("Error fetching GitHub rate limit:", error);
+    return {
+      limit: 5000,
+      remaining: 0,
+      reset: Math.floor(Date.now() / 1000) + 3600,
+      used: 5000,
+      resetDate: new Date(Date.now() + 3600000).toISOString()
+    };
+  }
+}
+
 export { 
   getUserRepos, 
+  getUserRepoCount,
   getRepoPRs,
   getAllPRsForUser,
   getOpenRepoPrs,
-  getAllOpenPRsForUser
+  getAllOpenPRsForUser,
+  getGitHubRateLimit
 };

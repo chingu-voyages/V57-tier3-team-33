@@ -3,8 +3,15 @@ import {
   getAllPRsForUser, 
   getRepoPRs, 
   getUserRepos,
+  getUserRepoCount,
+  getGitHubRateLimit,
 } from "../services/github.open.prs";
 import { PRState, GitHubError } from "../types/github.types";
+import { 
+  formatPullRequestResponse,
+  formatRepoPRResponse,
+  formatUserRepositoriesResponse
+} from "../utils/pullRequestFormatter";
 
 
 export async function getUserPRs(req: Request, res: Response) {
@@ -16,30 +23,32 @@ export async function getUserPRs(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    // Validate state parameter
     const validStates: PRState[] = ['open', 'closed', 'all'];
     const prState = validStates.includes(state as PRState) ? state as PRState : 'open';
     
-    
-    const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
+    const perPage = Math.min(Math.max(parseInt(per_page as string) || 10, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const prs = await getAllPRsForUser(username, prState, options);
     
+    const [reposWithPRs, totalPublicRepos, rateLimit] = await Promise.all([
+      getAllPRsForUser(username, prState, options),
+      getUserRepoCount(username),
+      getGitHubRateLimit()
+    ]);
+    
+    const response = formatPullRequestResponse({
+      prs: reposWithPRs,
+      pageNum,
+      perPage,
+      prState,
+      username,
+      totalPublicRepos
+    });
+
     res.status(200).json({
-      success: true,
-      data: prs,
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_repos: prs.length,
-        total_prs: prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0)
-      },
-      filters: {
-        state: prState,
-        username
-      }
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getUserPRs:", error);
@@ -49,7 +58,7 @@ export async function getUserPRs(req: Request, res: Response) {
     
     res.status(statusCode).json({ 
       success: false,
-      message: "Error fetching pull requests", 
+      message: "Error fetching user pull requests", 
       error: githubError.message,
       ...(githubError.documentation_url && { documentation_url: githubError.documentation_url })
     });
@@ -66,33 +75,31 @@ export async function getUserRepoPRs(req: Request, res: Response) {
       page = '1' 
     } = req.query;
 
-    
     const validStates: PRState[] = ['open', 'closed', 'all'];
     const prState = validStates.includes(state as PRState) ? state as PRState : 'open';
-    
     
     const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const prs = await getRepoPRs(username, repo, prState, options);
     
+    const [pullRequests, rateLimit] = await Promise.all([
+      getRepoPRs(username, repo, prState, options),
+      getGitHubRateLimit()
+    ]);
+    
+    const response = formatRepoPRResponse({
+      repo,
+      pullRequests,
+      pageNum,
+      perPage,
+      prState,
+      username
+    });
+
     res.status(200).json({
-      success: true,
-      data: {
-        repo,
-        pullRequests: prs
-      },
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_prs: prs.length
-      },
-      filters: {
-        state: prState,
-        username,
-        repo
-      }
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getUserRepoPRs:", error);
@@ -123,19 +130,26 @@ export async function getUserRepositories(req: Request, res: Response) {
     const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
     const options = { perPage, page: pageNum };
-    const repos = await getUserRepos(username, options);
     
+    const [repos, totalPublicRepos, rateLimit] = await Promise.all([
+      getUserRepos(username, options),
+      getUserRepoCount(username),
+      getGitHubRateLimit()
+    ]);
+    
+    const effectiveTotal = Math.min(totalPublicRepos, 200);
+    
+    const response = formatUserRepositoriesResponse({
+      repos,
+      pageNum,
+      perPage,
+      username,
+      totalPublicRepos: effectiveTotal
+    });
+
     res.status(200).json({
-      success: true,
-      data: repos,
-      pagination: {
-        page: pageNum,
-        per_page: perPage,
-        total_repos: repos.length
-      },
-      filters: {
-        username
-      }
+      ...response,
+      rate_limit: rateLimit
     });
   } catch (error: any) {
     console.error("Error in getUserRepositories:", error);

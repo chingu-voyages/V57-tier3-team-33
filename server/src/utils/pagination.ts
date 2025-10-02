@@ -1,7 +1,7 @@
-export const parseLinkHeader = (link) => {
-    const links = {};
+export function parseLinkHeader(link: string): Record<string, number | null> {
+    const links: Record<string, number | null> = {};
     const parts = link ? link.split(", ") : [];
-    
+
     parts.forEach((part) => {
         const sections = part.split(";");
 
@@ -12,7 +12,7 @@ export const parseLinkHeader = (link) => {
 
         const urlOjb = new URL(url);
         const page = urlOjb.searchParams.get("page");
-        
+
         links[name] = page ? parseInt(page) : null;
     });
 

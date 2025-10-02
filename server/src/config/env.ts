@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const required = (name) => {
+const required = (name: any) => {
     const value = process.env[name];
 
     if (!value) throw new Error(`Missing environment variable: ${name}`);

@@ -1,7 +1,7 @@
 import express from "express";
-import { PORT } from "./config/env.js";
-import router from "./routes/TestRouter.js";
-import { errorHandler } from "./middlewares/errorHandler.js";
+import { PORT } from "./config/env";
+import router from "./routes/TestRouter";
+import { errorHandler } from "./middlewares/errorHandler";
 
 // testing server 
 const app = express();

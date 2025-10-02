@@ -1,13 +1,12 @@
 import { Octokit } from "octokit"
-import { parseLinkHeader } from "../utils/pagination.js";
-import { RepositoryDTO } from "../dtos/RepositoryDTO.js";
-import { PullRequestDTO } from "../dtos/PullRequestDTO.js";
-import { ReviewDTO } from "../dtos/ReviewDTO.js";
+import { parseLinkHeader } from "../utils/pagination";
+import { RepositoryDTO } from "../dtos/RepositoryDTO";
+import { PullRequestDTO } from "../dtos/PullRequestDTO";
 
 const octokit = new Octokit();
 
 // Get public repositories of a user
-export const fetchRepositoriesOfUser = async (username, page = 1, perPage = 30) => {
+export async function fetchRepositoriesOfUser(username: string, page = 1, perPage = 30) {
     try {
         const response = await octokit.request('GET /users/{username}/repos', {
             username: username,
@@ -21,7 +20,7 @@ export const fetchRepositoriesOfUser = async (username, page = 1, perPage = 30) 
         });
 
         return {
-            data: response.data.map((repo) => RepositoryDTO.fromGitHubAPIToModel(repo)),
+            data: response.data.map((repo: any) => RepositoryDTO.fromGitHubAPIToModel(repo)),
             pagination: await buildPagination(
                 response.headers.link,
                 page,
@@ -31,7 +30,7 @@ export const fetchRepositoriesOfUser = async (username, page = 1, perPage = 30) 
                 { username: username, type: 'all' }
             )
         };
-    } catch (error) {
+    } catch (error: any) {
         if (error.status === 404) throw new Error("User not found");
 
         throw new Error(error.message);
@@ -40,7 +39,12 @@ export const fetchRepositoriesOfUser = async (username, page = 1, perPage = 30) 
 
 // Get PRs of a public repo
 
-export const fetchPullRequestsOfRepo = async (owner, repo, state, page = 1, perPage = 30) => {
+export async function fetchPullRequestsOfRepo(
+    owner: string,
+    repo: string,
+    state: string,
+    page = 1,
+    perPage = 30) {
     try {
         const response = await octokit.request('GET /repos/{owner}/{repo}/pulls', {
             owner: owner,
@@ -61,7 +65,7 @@ export const fetchPullRequestsOfRepo = async (owner, repo, state, page = 1, perP
         const prs = []
         for (const pr of response.data) {
             const lastReview = await fetchLastReviewOfPullRequest(owner, repo, pr.number);
-            pr.lastReview = lastReview;
+            pr.last_review = lastReview;
             prs.push(PullRequestDTO.fromGitHubAPIToModel(pr));
         }
 
@@ -77,14 +81,14 @@ export const fetchPullRequestsOfRepo = async (owner, repo, state, page = 1, perP
             )
         };
 
-    } catch (error) {
+    } catch (error: any) {
         if (error.status === 404) throw new Error("User or repository not found");
 
         throw new Error(error.message);
     }
 }
 
-const fetchLastReviewOfPullRequest = async (owner, repo, pullNumber) => {
+async function fetchLastReviewOfPullRequest(owner: string, repo: string, pullNumber: number) {
     try {
         const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
             owner: owner,
@@ -108,12 +112,19 @@ const fetchLastReviewOfPullRequest = async (owner, repo, pullNumber) => {
         });
 
         return lastReview.data.length > 0 ? lastReview.data[0] : null;
-    } catch (error) {
+    } catch (error: any) {
         throw new Error(error.message);
     }
 }
 
-const buildPagination = async (link, page, perPage, totalRecordsOnCurrentPage, endpoint, params) => {
+async function buildPagination(
+    link: string,
+    page: number,
+    perPage: number,
+    totalRecordsOnCurrentPage: number,
+    endpoint: string,
+    params: object
+) {
     const links = parseLinkHeader(link);
     const totalPages = links.last || page;
     let totalRecordsOnLastPage = null;
@@ -128,7 +139,7 @@ const buildPagination = async (link, page, perPage, totalRecordsOnCurrentPage, e
                 per_page: perPage
             });
             totalRecordsOnLastPage = lastPage.data.length;
-        } catch (error) {
+        } catch (error: any) {
             throw new Error(error.message);
         }
     }

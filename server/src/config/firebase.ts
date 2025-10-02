@@ -11,7 +11,7 @@ import {
     AUTH_PROVIDER_X509_CERT_URL,
     CLIENT_X509_CERT_URL,
     UNIVERSE_DOMAIN
-} from './env.js';
+} from './env';
 
 const serviceAccount = {
     "type": TYPE,
@@ -28,7 +28,7 @@ const serviceAccount = {
 };
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount as any),
     databaseURL: `https://${PROJECT_ID}.firebaseio.com`
 });
 

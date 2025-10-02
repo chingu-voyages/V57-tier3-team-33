@@ -2,7 +2,6 @@
   "name": "server",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
     "dev": "nodemon src/server.ts",
     "start": "node src/server.ts",

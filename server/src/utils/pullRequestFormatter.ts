@@ -18,6 +18,7 @@ export interface FormatPullRequestResponseParams {
   prState: PRState;
   username: string;
   totalPublicRepos?: number;
+  totalPRsOverride?: number;
 }
 
 /**
@@ -26,10 +27,12 @@ export interface FormatPullRequestResponseParams {
  * @returns Formatted response object
  */
 export function formatPullRequestResponse(params: FormatPullRequestResponseParams): PullRequestResponseFormat {
-  const { prs, pageNum, perPage, prState, username, totalPublicRepos } = params;
+  const { prs, pageNum, perPage, prState, username, totalPublicRepos, totalPRsOverride } = params;
   
   // Calculate total PRs across all repositories
-  const totalPRs = prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0);
+  const totalPRs = typeof totalPRsOverride === 'number'
+    ? totalPRsOverride
+    : prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0);
   
   // Calculate total pages based on total PRs and per_page
   const totalPages = Math.ceil(totalPRs / perPage);

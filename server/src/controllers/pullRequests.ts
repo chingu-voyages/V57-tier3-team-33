@@ -5,6 +5,7 @@ import {
   getUserRepos,
   getUserRepoCount,
   getGitHubRateLimit,
+  getTotalPRCountViaSearch,
 } from "../services/github.open.prs";
 import { PRState, GitHubError } from "../types/github.types";
 import { 
@@ -31,9 +32,10 @@ export async function getUserPRs(req: Request, res: Response) {
 
     const options = { perPage, page: pageNum };
     
-    const [reposWithPRs, totalPublicRepos, rateLimit] = await Promise.all([
+    const [reposWithPRs, totalPublicRepos, totalPRsAllRepos, rateLimit] = await Promise.all([
       getAllPRsForUser(username, prState, options),
       getUserRepoCount(username),
+      getTotalPRCountViaSearch(username, prState),
       getGitHubRateLimit()
     ]);
     
@@ -43,7 +45,8 @@ export async function getUserPRs(req: Request, res: Response) {
       perPage,
       prState,
       username,
-      totalPublicRepos
+      totalPublicRepos,
+      totalPRsOverride: totalPRsAllRepos
     });
 
     res.status(200).json({

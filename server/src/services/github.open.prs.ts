@@ -13,12 +13,7 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-/**
- * Maximum number of repositories to process for pull requests and reviews.
- * This limit helps improve performance and reduces API rate limiting issues.
- * Processing is limited to the first 200 repositories sorted by most recently updated.
- */
-const MAX_REPOSITORIES_TO_PROCESS = 200;
+
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -37,11 +32,8 @@ async function getUserRepoCount(username: string): Promise<number> {
     });
     
     const actualCount = response.data.public_repos;
-    const limitedCount = Math.min(actualCount, MAX_REPOSITORIES_TO_PROCESS);
-    
-    console.log(`User ${username} has ${actualCount} public repos, returning ${limitedCount} (limited to ${MAX_REPOSITORIES_TO_PROCESS})`);
-    
-    return limitedCount;
+    console.log(`User ${username} has ${actualCount} public repos`);
+    return actualCount;
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || "Error fetching user repository count",
@@ -54,6 +46,11 @@ async function getUserRepoCount(username: string): Promise<number> {
   }
 }
 
+async function getUserType(username: string): Promise<string> {
+  const response = await octokit.request("GET /users/{username}", { username });
+  return (response.data as any)?.type || "User";
+}
+
 async function getUserRepos(
   username: string, 
   options: GitHubServiceOptions = {}
@@ -64,11 +61,11 @@ async function getUserRepos(
     let currentPage = page;
     let stopDueToRateLimit = false;
     
-    while (allRepos.length < MAX_REPOSITORIES_TO_PROCESS) {
+    while (true) {
       try {
         const response = await octokit.request("GET /users/{username}/repos", {
           username,
-          per_page: Math.min(perPage, MAX_REPOSITORIES_TO_PROCESS - allRepos.length),
+          per_page: perPage,
           page: currentPage,
           sort: "updated",
           direction: "desc"
@@ -94,7 +91,7 @@ async function getUserRepos(
           try {
             const retryResponse = await octokit.request("GET /users/{username}/repos", {
               username,
-              per_page: Math.min(perPage, MAX_REPOSITORIES_TO_PROCESS - allRepos.length),
+              per_page: perPage,
               page: currentPage,
               sort: "updated",
               direction: "desc"
@@ -112,10 +109,9 @@ async function getUserRepos(
       }
     }
     
-    const limitedRepos = allRepos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
-    console.log(`Fetched ${limitedRepos.length} repositories (limited to ${MAX_REPOSITORIES_TO_PROCESS}) for user ${username}${stopDueToRateLimit ? ' - stopped due to rate limit' : ''}`);
+    console.log(`Fetched ${allRepos.length} repositories for user ${username}${stopDueToRateLimit ? ' - stopped due to rate limit' : ''}`);
     
-    return limitedRepos;
+    return allRepos;
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || "Error fetching repositories",
@@ -180,15 +176,12 @@ async function getAllPRsForUser(
     const repos = await getUserRepos(username, options);
     console.log("repos size", repos.length);
     
-    const limitedRepos = repos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
-    console.log("Processing limited repos:", limitedRepos.length, "out of", repos.length);
-    
     const allPRs: RepoWithPRs[] = [];
     
     const batchSize = 5;
     let stopDueToRateLimit = false;
-    for (let i = 0; i < limitedRepos.length; i += batchSize) {
-      const batch = limitedRepos.slice(i, i + batchSize);
+    for (let i = 0; i < repos.length; i += batchSize) {
+      const batch = repos.slice(i, i + batchSize);
       
       const batchPromises = batch.map(async (repo) => {
         try {
@@ -217,7 +210,7 @@ async function getAllPRsForUser(
       const validResults = batchResults.filter((result): result is RepoWithPRs => result !== null);
       allPRs.push(...validResults);
       
-      if (i + batchSize < limitedRepos.length && !stopDueToRateLimit) {
+      if (i + batchSize < repos.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       if (stopDueToRateLimit) {
@@ -238,7 +231,6 @@ async function getAllPRsForUser(
   }
 }
 
-// this code here is not necessary, we can just use getRepoPRs with state = "open"
 const getOpenRepoPrs = (owner: string, repo: string, options?: GitHubServiceOptions) => 
   getRepoPRs(owner, repo, "open", options);
 
@@ -275,6 +267,40 @@ async function getGitHubRateLimit(): Promise<{
   }
 }
 
+// Uses GitHub Search API to get the global total count of PRs across all repositories
+// owned by the specified user or organization. Respects the requested state.
+async function getTotalPRCountViaSearch(owner: string, state: PRState = "open"): Promise<number> {
+  try {
+    const accountType = await getUserType(owner);
+    const ownerQualifier = accountType === "Organization" ? `org:${owner}` : `user:${owner}`;
+    const stateQualifier = state === "all" ? "" : state === "open" ? " is:open" : " is:closed";
+    const q = `${ownerQualifier} is:pr${stateQualifier}`.trim();
+
+    let response;
+    try {
+      response = await octokit.request("GET /search/issues", { q, per_page: 1 });
+    } catch (err: any) {
+      if (isRateLimitError(err)) {
+        console.warn(`Rate limit on search issues for ${owner}. Retrying once.`);
+        await sleep(1000);
+        response = await octokit.request("GET /search/issues", { q, per_page: 1 });
+      } else {
+        throw err;
+      }
+    }
+
+    const total = (response.data as any)?.total_count ?? 0;
+    return total;
+  } catch (error: any) {
+    const githubError: GitHubError = {
+      message: error.message || `Error fetching total PR count via search for ${owner}`,
+      status: error.status,
+      documentation_url: error.response?.data?.documentation_url
+    };
+    console.error(`Error fetching total PR count via search for ${owner}:`, githubError);
+    throw githubError;
+  }
+}
 export { 
   getUserRepos, 
   getUserRepoCount,
@@ -282,5 +308,6 @@ export {
   getAllPRsForUser,
   getOpenRepoPrs,
   getAllOpenPRsForUser,
-  getGitHubRateLimit
+  getGitHubRateLimit,
+  getTotalPRCountViaSearch,
 };

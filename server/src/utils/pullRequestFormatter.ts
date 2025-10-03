@@ -31,8 +31,8 @@ export function formatPullRequestResponse(params: FormatPullRequestResponseParam
   // Calculate total PRs across all repositories
   const totalPRs = prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0);
   
-  // Calculate total pages based on total records and per_page
-  const totalPages = totalPublicRepos ? Math.ceil(totalPublicRepos / perPage) : Math.ceil(prs.length / perPage);
+  // Calculate total pages based on total PRs and per_page
+  const totalPages = Math.ceil(totalPRs / perPage);
   
   return {
     success: true,
@@ -41,7 +41,7 @@ export function formatPullRequestResponse(params: FormatPullRequestResponseParam
       page: pageNum,
       per_page: perPage,
       total_pages: totalPages,
-      total_records: totalPublicRepos || prs.length
+      total_records: totalPRs
     },
     filters: {
       state: prState,

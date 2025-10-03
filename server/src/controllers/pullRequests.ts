@@ -47,7 +47,7 @@ export async function getUserPRs(req: Request, res: Response) {
       prState,
       username,
       totalPublicRepos,
-      totalPRsOverride: totalPRsAllRepos,
+      totalPRsOverride: Math.min(totalPRsAllRepos, 1000),
     });
 
     res.status(200).json({

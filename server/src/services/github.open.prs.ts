@@ -162,6 +162,7 @@ async function getAllPRsForUser(
         order: "desc",
         per_page: perPage,
         page
+        
       });
     } catch (err: any) {
       if (isRateLimitError(err)) {

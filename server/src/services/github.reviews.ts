@@ -15,17 +15,8 @@ import {
 
 const octokit = new Octokit();
 
-/**
- * Maximum number of repositories to process for pull requests and reviews.
- * This limit helps improve performance and reduces API rate limiting issues.
- * Processing is limited to the first 200 repositories sorted by most recently updated.
- */
 const MAX_REPOSITORIES_TO_PROCESS = 200;
-
-// Utility: small delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Utility: detect GitHub API rate limit errors
 function isRateLimitError(error: any): boolean {
   const status = error?.status || error?.response?.status;
   const headers = error?.response?.headers || {};
@@ -34,9 +25,6 @@ function isRateLimitError(error: any): boolean {
   return status === 403 && (remaining === '0' || message.includes('rate limit') || message.includes('quota exhausted'));
 }
 
-/**
- * Get reviews for a specific pull request
- */
 async function getPullRequestReviews(
   owner: string,
   repo: string,
@@ -93,9 +81,6 @@ async function getPullRequestReviews(
   }
 }
 
-/**
- * Get all reviews for a specific repository with optional state filtering
- */
 async function getRepoReviews(
   owner: string,
   repo: string,
@@ -105,7 +90,6 @@ async function getRepoReviews(
   try {
     const { perPage = 30, page = 1 } = options;
     
-    // First get all pull requests for the repository
     let prsResponse;
     try {
       prsResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
@@ -139,7 +123,6 @@ async function getRepoReviews(
     const failedOperations: FailedOperation[] = [];
     let successCount = 0;
     
-    // Process PRs in batches to avoid rate limiting
     const batchSize = 5;
     const prs = prsResponse.data;
     let stopDueToRateLimit = false;
@@ -192,7 +175,6 @@ async function getRepoReviews(
       const flatResults = successfulResults.flatMap((result: any) => result.reviews);
       allReviews.push(...flatResults);
       
-      // Small delay between batches
       if (i + batchSize < prs.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -202,7 +184,6 @@ async function getRepoReviews(
       }
     }
     
-    // Filter by state if not 'all'
     const filteredReviews = state !== "all" 
       ? allReviews.filter(review => review.state === state)
       : allReviews;
@@ -225,16 +206,12 @@ async function getRepoReviews(
   }
 }
 
-/**
- * Get all reviews for a user across all their repositories
- */
 async function getAllReviewsForUser(
   username: string,
   state: ReviewState = "all",
   options: GitHubServiceOptions = {}
 ): Promise<RepoWithReviewsAndErrors[]> {
   try {
-    // Get user repositories
     let reposResponse;
     try {
       reposResponse = await octokit.request("GET /users/{username}/repos", {
@@ -262,15 +239,13 @@ async function getAllReviewsForUser(
     
     const repos = reposResponse.data as GitHubRepo[];
     
-    // Limit to first MAX_REPOSITORIES_TO_PROCESS repositories to improve performance and reduce API calls
     const limitedRepos = repos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
     console.log("Processing limited repos for reviews:", limitedRepos.length, "out of", repos.length);
     
     const allReviews: RepoWithReviewsAndErrors[] = [];
     const globalFailedOperations: FailedOperation[] = [];
     
-    // Process repositories in batches to avoid rate limiting
-    const batchSize = 3; // Smaller batch size since we're making multiple API calls per repo
+    const batchSize = 3;
     let stopDueToRateLimit = false;
     
     for (let i = 0; i < limitedRepos.length; i += batchSize) {
@@ -346,7 +321,6 @@ async function getAllReviewsForUser(
       const validResults = batchResults.filter((result): result is RepoWithReviewsAndErrors => result !== null);
       allReviews.push(...validResults);
       
-      // Longer delay between batches due to multiple API calls
       if (i + batchSize < limitedRepos.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
@@ -369,18 +343,12 @@ async function getAllReviewsForUser(
   }
 }
 
-/**
- * Get reviews by a specific user (reviews they have submitted)
- */
 async function getReviewsByUser(
   reviewer: string,
   state: ReviewState = "all",
   options: GitHubServiceOptions = {}
 ): Promise<ReviewsWithErrors> {
   try {
-    // This is a more complex query that would require searching across repositories
-    // For now, we'll implement a basic version that searches recent activity
-    // Limit the search results to respect the MAX_REPOSITORIES_TO_PROCESS limit
     const searchQuery = `type:pr+reviewed-by:${reviewer}`;
     let response;
     try {
@@ -411,10 +379,8 @@ async function getReviewsByUser(
     const failedOperations: FailedOperation[] = [];
     let successCount = 0;
     
-    // Limit the number of PRs processed to respect the repository limit
     const limitedPRs = response.data.items.slice(0, MAX_REPOSITORIES_TO_PROCESS);
     console.log(`Processing ${limitedPRs.length} PRs (limited to ${MAX_REPOSITORIES_TO_PROCESS}) for reviewer ${reviewer}`);
-    // Process each PR to get the actual reviews
     const batchSize = 5;
     let stopDueToRateLimit = false;
     
@@ -426,7 +392,6 @@ async function getReviewsByUser(
           const [owner, repo] = pr.repository_url.split('/').slice(-2);
           const reviews = await getPullRequestReviews(owner, repo, pr.number, options);
           
-          // Filter to only reviews by the specified user
           const userReviews = reviews.filter(review => review.reviewer === reviewer);
           successCount++;
           return userReviews;
@@ -471,7 +436,6 @@ async function getReviewsByUser(
       const flatResults = batchResults.flat();
       allReviews.push(...flatResults);
       
-      // Small delay between batches
       if (i + batchSize < limitedPRs.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -481,7 +445,6 @@ async function getReviewsByUser(
       }
     }
     
-    // Filter by state if not 'all'
     const filteredReviews = state !== "all" 
       ? allReviews.filter(review => review.state === state)
       : allReviews;

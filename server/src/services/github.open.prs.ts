@@ -51,74 +51,49 @@ async function getUserType(username: string): Promise<string> {
   return (response.data as any)?.type || "User";
 }
 
-async function getUserRepos(
-  username: string, 
+async function getOwnerRepos(
+  owner: string,
   options: GitHubServiceOptions = {}
 ): Promise<GitHubRepo[]> {
   try {
-    const { perPage = 100, page = 1 } = options;
-    const allRepos: GitHubRepo[] = [];
-    let currentPage = page;
-    let stopDueToRateLimit = false;
+    const { perPage = 30, page = 1 } = options;
+    const accountType = await getUserType(owner);
+    const isOrg = accountType === "Organization";
     
-    while (true) {
-      try {
-        const response = await octokit.request("GET /users/{username}/repos", {
-          username,
+    let response: any;
+    try {
+      response = await octokit.request(isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos", {
+        org: isOrg ? owner : undefined,
+        username: isOrg ? undefined : owner,
+        per_page: perPage,
+        page,
+        sort: "updated",
+        direction: "desc"
+      } as any);
+    } catch (err: any) {
+      if (isRateLimitError(err)) {
+        console.warn(`Rate limit encountered while fetching repos for ${owner}. Retrying once.`);
+        await sleep(1000);
+        response = await octokit.request(isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos", {
+          org: isOrg ? owner : undefined,
+          username: isOrg ? undefined : owner,
           per_page: perPage,
-          page: currentPage,
+          page,
           sort: "updated",
           direction: "desc"
-        });
-        
-        const repos = response.data as GitHubRepo[];
-        
-        if (repos.length === 0) {
-          break;
-        }
-        
-        allRepos.push(...repos);
-        
-        if (repos.length < perPage) {
-          break;
-        }
-        
-        currentPage++;
-      } catch (err: any) {
-        if (isRateLimitError(err)) {
-          console.warn(`Rate limit encountered while fetching repos for ${username}. Retrying once, then ending loop.`);
-          await sleep(1000);
-          try {
-            const retryResponse = await octokit.request("GET /users/{username}/repos", {
-              username,
-              per_page: perPage,
-              page: currentPage,
-              sort: "updated",
-              direction: "desc"
-            });
-            const retryRepos = retryResponse.data as GitHubRepo[];
-            allRepos.push(...retryRepos);
-          } catch (retryErr: any) {
-            console.warn(`Retry after rate limit failed for ${username}:`, retryErr?.message || retryErr);
-          }
-          stopDueToRateLimit = true;
-          break;
-        } else {
-          throw err;
-        }
+        } as any);
+      } else {
+        throw err;
       }
     }
-    
-    console.log(`Fetched ${allRepos.length} repositories for user ${username}${stopDueToRateLimit ? ' - stopped due to rate limit' : ''}`);
-    
-    return allRepos;
+
+    return response.data as GitHubRepo[];
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || "Error fetching repositories",
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
     console.error("Error fetching repositories:", githubError);
     throw githubError;
   }
@@ -173,53 +148,66 @@ async function getAllPRsForUser(
   options: GitHubServiceOptions = {}
 ): Promise<RepoWithPRs[]> {
   try {
-    const repos = await getUserRepos(username, options);
-    console.log("repos size", repos.length);
-    
-    const allPRs: RepoWithPRs[] = [];
-    
-    const batchSize = 5;
-    let stopDueToRateLimit = false;
-    for (let i = 0; i < repos.length; i += batchSize) {
-      const batch = repos.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (repo) => {
-        try {
-          const prs = await getRepoPRs(username, repo.name, state, options);
-          return prs.length > 0 ? { repo: repo.name, pullRequests: prs } : null;
-        } catch (error) {
-          if (isRateLimitError(error)) {
-            console.warn(`Rate limit encountered on repo ${repo.name}. Retrying once, then stopping further processing.`);
-            await sleep(1000);
-            try {
-              const prs = await getRepoPRs(username, repo.name, state, options);
-              stopDueToRateLimit = true;
-              return prs.length > 0 ? { repo: repo.name, pullRequests: prs } : null;
-            } catch (retryErr) {
-              stopDueToRateLimit = true;
-              console.warn(`Retry failed for repo ${repo.name}:`, (retryErr as any)?.message || retryErr);
-              return null;
-            }
-          }
-          console.warn(`Failed to fetch PRs for ${repo.name}:`, (error as any)?.message || error);
-          return null;
-        }
+    const { perPage = 30, page = 1 } = options;
+    const accountType = await getUserType(username);
+    const ownerQualifier = accountType === "Organization" ? `org:${username}` : `user:${username}`;
+    const stateQualifier = state === "all" ? "" : state === "open" ? " is:open" : " is:closed";
+    const q = `${ownerQualifier} is:pr${stateQualifier}`.trim();
+
+    let response: any;
+    try {
+      response = await octokit.request("GET /search/issues", {
+        q,
+        sort: "updated",
+        order: "desc",
+        per_page: perPage,
+        page
       });
-      
-      const batchResults = await Promise.all(batchPromises);
-      const validResults = batchResults.filter((result): result is RepoWithPRs => result !== null);
-      allPRs.push(...validResults);
-      
-      if (i + batchSize < repos.length && !stopDueToRateLimit) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      if (stopDueToRateLimit) {
-        console.warn("Stopping PR aggregation due to rate limit after one retry attempt.");
-        break;
+    } catch (err: any) {
+      if (isRateLimitError(err)) {
+        console.warn(`Rate limit on search issues for ${username}. Retrying once.`);
+        await sleep(1000);
+        response = await octokit.request("GET /search/issues", {
+          q,
+          sort: "updated",
+          order: "desc",
+          per_page: perPage,
+          page
+        });
+      } else {
+        throw err;
       }
     }
-    
-    return allPRs;
+
+    const items = response.data.items || [];
+    const formatted: FormattedPullRequest[] = items.map((item: any) => {
+      const [owner, repo] = (item.repository_url || "").split("/").slice(-2);
+      return {
+        repo,
+        number: item.number,
+        title: item.title,
+        user: item.user?.login,
+        url: item.html_url,
+        state: item.state,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        closed_at: item.closed_at,
+        merged_at: null,
+      } as FormattedPullRequest;
+    });
+
+    const byRepo = new Map<string, FormattedPullRequest[]>();
+    for (const pr of formatted) {
+      if (!byRepo.has(pr.repo)) byRepo.set(pr.repo, []);
+      byRepo.get(pr.repo)!.push(pr);
+    }
+
+    const grouped: RepoWithPRs[] = Array.from(byRepo.entries()).map(([repo, pullRequests]) => ({
+      repo,
+      pullRequests
+    }));
+
+    return grouped;
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || `Error fetching ${state} pull requests for user ${username}`,
@@ -267,8 +255,6 @@ async function getGitHubRateLimit(): Promise<{
   }
 }
 
-// Uses GitHub Search API to get the global total count of PRs across all repositories
-// owned by the specified user or organization. Respects the requested state.
 async function getTotalPRCountViaSearch(owner: string, state: PRState = "open"): Promise<number> {
   try {
     const accountType = await getUserType(owner);
@@ -302,7 +288,7 @@ async function getTotalPRCountViaSearch(owner: string, state: PRState = "open"):
   }
 }
 export { 
-  getUserRepos, 
+  getOwnerRepos, 
   getUserRepoCount,
   getRepoPRs,
   getAllPRsForUser,

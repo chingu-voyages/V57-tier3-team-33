@@ -25,7 +25,7 @@ export default function KeyFeatures() {
   ];
 
   return (
-    <main className=" py-20 px-6 bg-gray-custom">
+    <main className=" py-20 px-6">
       <div className="max-w-screen-lg mx-auto">
         <h2 className="text-center text-2xl font-bold text-gray-800 mb-12">
           Key Features

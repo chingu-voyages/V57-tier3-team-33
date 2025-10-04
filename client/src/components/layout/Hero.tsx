@@ -1,9 +1,9 @@
 
 const Hero = () => {
   return (
-    <section className="h-[76vh] relative overflow-hidden">
+    <section className="md:h-[80vh] h-[74vh] relative overflow-hidden">
       <div className="sm:px-10 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col items-center text-center md:pt-36 pt-24">
+        <div className="max-w-7xl mx-auto flex flex-col items-center text-center md:pt-36 pt-30">
           {/* Headline */}
           <h2 className="md:text-7xl sm:text-6xl text-[38px] text-gray-800 md:max-w-4xl font-semibold">
             Track Your GitHub Pull Requests

@@ -1,17 +1,12 @@
 import { Octokit } from "octokit";
 import {
   GitHubReview,
-  FormattedReview,
-  RepoWithReviews,
-  ReviewState,
   GitHubServiceOptions,
   GitHubError,
   GitHubRepo,
   GitHubPullRequest,
-  FailedOperation,
-  ReviewsWithErrors,
-  RepoWithReviewsAndErrors
 } from "../types/github.types";
+import { FormattedReview, ReviewState, FailedOperation, ReviewsWithErrors, RepoWithReviewsAndErrors } from "../types/formatted.types";
 
 const octokit = new Octokit();
 
@@ -57,7 +52,7 @@ async function getPullRequestReviews(
         throw err;
       }
     }
-    
+
     return response.data.map((review: any) => ({
       id: review.id,
       reviewer: review.user?.login,
@@ -75,7 +70,7 @@ async function getPullRequestReviews(
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error(`Error fetching reviews for PR #${pullNumber} in ${owner}/${repo}:`, githubError);
     throw githubError;
   }
@@ -89,13 +84,13 @@ async function getRepoReviews(
 ): Promise<ReviewsWithErrors> {
   try {
     const { perPage = 30, page = 1 } = options;
-    
+
     let prsResponse;
     try {
       prsResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
         owner,
         repo,
-        state: "all", 
+        state: "all",
         per_page: perPage,
         page,
         sort: "updated",
@@ -108,7 +103,7 @@ async function getRepoReviews(
         prsResponse = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
           owner,
           repo,
-          state: "all", 
+          state: "all",
           per_page: perPage,
           page,
           sort: "updated",
@@ -118,18 +113,18 @@ async function getRepoReviews(
         throw err;
       }
     }
-    
+
     const allReviews: FormattedReview[] = [];
     const failedOperations: FailedOperation[] = [];
     let successCount = 0;
-    
+
     const batchSize = 5;
     const prs = prsResponse.data;
     let stopDueToRateLimit = false;
-    
+
     for (let i = 0; i < prs.length; i += batchSize) {
       const batch = prs.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (pr: any) => {
         try {
           const reviews = await getPullRequestReviews(owner, repo, pr.number, options);
@@ -169,12 +164,12 @@ async function getRepoReviews(
           return { success: false, reviews: [], prNumber: pr.number };
         }
       });
-      
+
       const batchResults = await Promise.all(batchPromises);
       const successfulResults = batchResults.filter((result: any) => result.success);
       const flatResults = successfulResults.flatMap((result: any) => result.reviews);
       allReviews.push(...flatResults);
-      
+
       if (i + batchSize < prs.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -183,11 +178,11 @@ async function getRepoReviews(
         break;
       }
     }
-    
-    const filteredReviews = state !== "all" 
+
+    const filteredReviews = state !== "all"
       ? allReviews.filter(review => review.state === state)
       : allReviews;
-    
+
     return {
       reviews: filteredReviews,
       failed_operations: failedOperations,
@@ -200,7 +195,7 @@ async function getRepoReviews(
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error(`Error fetching reviews for repository ${owner}/${repo}:`, githubError);
     throw githubError;
   }
@@ -236,25 +231,25 @@ async function getAllReviewsForUser(
         throw err;
       }
     }
-    
+
     const repos = reposResponse.data as GitHubRepo[];
-    
+
     const limitedRepos = repos.slice(0, MAX_REPOSITORIES_TO_PROCESS);
     console.log("Processing limited repos for reviews:", limitedRepos.length, "out of", repos.length);
-    
+
     const allReviews: RepoWithReviewsAndErrors[] = [];
     const globalFailedOperations: FailedOperation[] = [];
-    
+
     const batchSize = 3;
     let stopDueToRateLimit = false;
-    
+
     for (let i = 0; i < limitedRepos.length; i += batchSize) {
       const batch = limitedRepos.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (repo) => {
         try {
           const reviewsWithErrors = await getRepoReviews(username, repo.name, state, options);
-          
+
           if (reviewsWithErrors.reviews.length > 0 || reviewsWithErrors.failed_operations.length > 0) {
             return {
               repo: repo.name,
@@ -316,11 +311,11 @@ async function getAllReviewsForUser(
           };
         }
       });
-      
+
       const batchResults = await Promise.all(batchPromises);
       const validResults = batchResults.filter((result): result is RepoWithReviewsAndErrors => result !== null);
       allReviews.push(...validResults);
-      
+
       if (i + batchSize < limitedRepos.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
@@ -329,7 +324,7 @@ async function getAllReviewsForUser(
         break;
       }
     }
-    
+
     return allReviews;
   } catch (error: any) {
     const githubError: GitHubError = {
@@ -337,7 +332,7 @@ async function getAllReviewsForUser(
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error(`Error fetching all reviews for user ${username}:`, githubError);
     throw githubError;
   }
@@ -374,25 +369,25 @@ async function getReviewsByUser(
         throw err;
       }
     }
-    
+
     const allReviews: FormattedReview[] = [];
     const failedOperations: FailedOperation[] = [];
     let successCount = 0;
-    
+
     const limitedPRs = response.data.items.slice(0, MAX_REPOSITORIES_TO_PROCESS);
     console.log(`Processing ${limitedPRs.length} PRs (limited to ${MAX_REPOSITORIES_TO_PROCESS}) for reviewer ${reviewer}`);
     const batchSize = 5;
     let stopDueToRateLimit = false;
-    
+
     for (let i = 0; i < limitedPRs.length; i += batchSize) {
       const batch = limitedPRs.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (pr: any) => {
         try {
           const [owner, repo] = pr.repository_url.split('/').slice(-2);
           const reviews = await getPullRequestReviews(owner, repo, pr.number, options);
-          
-          const userReviews = reviews.filter(review => review.reviewer === reviewer);
+
+          const userReviews = reviews.filter(review => review.reviewer?.username === reviewer);
           successCount++;
           return userReviews;
         } catch (error: any) {
@@ -402,7 +397,7 @@ async function getReviewsByUser(
             try {
               const [owner, repo] = pr.repository_url.split('/').slice(-2);
               const reviews = await getPullRequestReviews(owner, repo, pr.number, options);
-              const userReviews = reviews.filter(review => review.reviewer === reviewer);
+              const userReviews = reviews.filter(review => review.reviewer?.username === reviewer);
               successCount++;
               stopDueToRateLimit = true;
               return userReviews;
@@ -431,11 +426,11 @@ async function getReviewsByUser(
           return [];
         }
       });
-      
+
       const batchResults = await Promise.all(batchPromises);
       const flatResults = batchResults.flat();
       allReviews.push(...flatResults);
-      
+
       if (i + batchSize < limitedPRs.length && !stopDueToRateLimit) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -444,11 +439,11 @@ async function getReviewsByUser(
         break;
       }
     }
-    
-    const filteredReviews = state !== "all" 
+
+    const filteredReviews = state !== "all"
       ? allReviews.filter(review => review.state === state)
       : allReviews;
-    
+
     return {
       reviews: filteredReviews,
       failed_operations: failedOperations,
@@ -461,7 +456,7 @@ async function getReviewsByUser(
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error(`Error fetching reviews by user ${reviewer}:`, githubError);
     throw githubError;
   }

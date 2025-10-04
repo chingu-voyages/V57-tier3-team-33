@@ -1,11 +1,9 @@
+import { FormattedReview, RepoWithReviewsAndErrors, ReviewState } from "../types/formatted.types";
 import { 
-  FormattedReview,
   PRReviewResponseFormat,
   RepoReviewResponseFormat,
   UserReviewResponseFormat,
   ReviewStatsResponseFormat,
-  RepoWithReviewsAndErrors,
-  ReviewState
 } from "../types/github.types";
 
 /**

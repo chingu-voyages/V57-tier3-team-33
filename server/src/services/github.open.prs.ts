@@ -2,18 +2,16 @@ import { Octokit } from "octokit";
 import {
   GitHubRepo,
   GitHubPullRequest,
-  FormattedPullRequest,
-  RepoWithPRs,
   PRState,
   GitHubServiceOptions,
   GitHubError
 } from "../types/github.types";
+import { FormattedPullRequest, RepoWithPRs } from "../types/formatted.types";
+import { PullRequestDTO } from "../dtos/PullRequestDTO";
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
-
-
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -30,7 +28,7 @@ async function getUserRepoCount(username: string): Promise<number> {
     const response = await octokit.request("GET /users/{username}", {
       username
     });
-    
+
     const actualCount = response.data.public_repos;
     console.log(`User ${username} has ${actualCount} public repos`);
     return actualCount;
@@ -40,7 +38,7 @@ async function getUserRepoCount(username: string): Promise<number> {
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error("Error fetching user repository count:", githubError);
     throw githubError;
   }
@@ -59,7 +57,7 @@ async function getOwnerRepos(
     const { perPage = 30, page = 1 } = options;
     const accountType = await getUserType(owner);
     const isOrg = accountType === "Organization";
-    
+
     let response: any;
     try {
       response = await octokit.request(isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos", {
@@ -100,14 +98,14 @@ async function getOwnerRepos(
 }
 
 async function getRepoPRs(
-  owner: string, 
-  repo: string, 
+  owner: string,
+  repo: string,
   state: PRState = "open",
   options: GitHubServiceOptions = {}
 ): Promise<FormattedPullRequest[]> {
   try {
     const { perPage = 30, page = 1 } = options;
-    
+
     const response = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
       owner,
       repo,
@@ -117,7 +115,7 @@ async function getRepoPRs(
       sort: "updated",
       direction: "desc"
     });
-    
+
     return response.data.map((pr: any) => ({
       repo,
       number: pr.number,
@@ -136,14 +134,14 @@ async function getRepoPRs(
       status: error.status,
       documentation_url: error.response?.data?.documentation_url
     };
-    
+
     console.error(`Error fetching pull requests for ${owner}/${repo}:`, githubError);
     throw githubError;
   }
 }
 
 async function getAllPRsForUser(
-  username: string, 
+  username: string,
   state: PRState = "open",
   options: GitHubServiceOptions = {}
 ): Promise<RepoWithPRs[]> {
@@ -162,7 +160,7 @@ async function getAllPRsForUser(
         order: "desc",
         per_page: perPage,
         page
-        
+
       });
     } catch (err: any) {
       if (isRateLimitError(err)) {
@@ -183,18 +181,7 @@ async function getAllPRsForUser(
     const items = response.data.items || [];
     const formatted: FormattedPullRequest[] = items.map((item: any) => {
       const [owner, repo] = (item.repository_url || "").split("/").slice(-2);
-      return {
-        repo,
-        number: item.number,
-        title: item.title,
-        user: item.user?.login,
-        url: item.html_url,
-        state: item.state,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        closed_at: item.closed_at,
-        merged_at: null,
-      } as FormattedPullRequest;
+      return PullRequestDTO.fromGitHubAPIToModel(item);
     });
 
     const byRepo = new Map<string, FormattedPullRequest[]>();
@@ -214,16 +201,16 @@ async function getAllPRsForUser(
       message: error.message || `Error fetching ${state} pull requests for user ${username}`,
       status: error.status
     };
-    
+
     console.error(`Error fetching all PRs for user ${username}:`, githubError);
     throw githubError;
   }
 }
 
-const getOpenRepoPrs = (owner: string, repo: string, options?: GitHubServiceOptions) => 
+const getOpenRepoPrs = (owner: string, repo: string, options?: GitHubServiceOptions) =>
   getRepoPRs(owner, repo, "open", options);
 
-const getAllOpenPRsForUser = (username: string, options?: GitHubServiceOptions) => 
+const getAllOpenPRsForUser = (username: string, options?: GitHubServiceOptions) =>
   getAllPRsForUser(username, "open", options);
 
 async function getGitHubRateLimit(): Promise<{
@@ -236,7 +223,7 @@ async function getGitHubRateLimit(): Promise<{
   try {
     const response = await octokit.request("GET /rate_limit");
     const rateLimit = response.data.rate;
-    
+
     return {
       limit: rateLimit.limit,
       remaining: rateLimit.remaining,
@@ -288,8 +275,8 @@ async function getTotalPRCountViaSearch(owner: string, state: PRState = "open"):
     throw githubError;
   }
 }
-export { 
-  getOwnerRepos, 
+export {
+  getOwnerRepos,
   getUserRepoCount,
   getRepoPRs,
   getAllPRsForUser,

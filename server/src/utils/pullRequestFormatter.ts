@@ -1,11 +1,11 @@
-import { 
-  PullRequestResponseFormat, 
-  FormattedPullRequest, 
+import { FormattedPullRequest, RepoWithPRs } from "../types/formatted.types";
+import {
+  PullRequestResponseFormat,
   PRState,
   RepoPRResponseFormat,
   UserRepositoriesResponseFormat,
-  GitHubRepo,
-  RepoWithPRs
+  GitHubRepo
+
 } from "../types/github.types";
 
 /**
@@ -28,15 +28,15 @@ export interface FormatPullRequestResponseParams {
  */
 export function formatPullRequestResponse(params: FormatPullRequestResponseParams): PullRequestResponseFormat {
   const { prs, pageNum, perPage, prState, username, totalPublicRepos, totalPRsOverride } = params;
-  
+
   // Calculate total PRs across all repositories
   const totalPRs = typeof totalPRsOverride === 'number'
     ? totalPRsOverride
     : prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0);
-  
+
   // Calculate total pages based on total PRs and per_page
   const totalPages = Math.ceil(totalPRs / perPage);
-  
+
   return {
     success: true,
     data: prs,
@@ -67,10 +67,10 @@ export function formatRepoPRResponse(params: {
   username: string;
 }): RepoPRResponseFormat {
   const { repo, pullRequests, pageNum, perPage, prState, username } = params;
-  
+
   // Calculate total pages based on pull requests count
   const totalPages = Math.ceil(pullRequests.length / perPage);
-  
+
   return {
     success: true,
     data: {
@@ -104,10 +104,10 @@ export function formatUserRepositoriesResponse(params: {
   totalPublicRepos: number;
 }): UserRepositoriesResponseFormat {
   const { repos, pageNum, perPage, username, totalPublicRepos } = params;
-  
+
   // Calculate total pages based on total public repositories
   const totalPages = Math.ceil(totalPublicRepos / perPage);
-  
+
   return {
     success: true,
     data: repos,

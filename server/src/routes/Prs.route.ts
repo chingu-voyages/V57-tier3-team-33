@@ -3,7 +3,6 @@ import { getUserPRs, getUserRepoPRs, getUserRepositories } from "../controllers/
 
 const router = Router();
 
-
 router.get("/repos/:username", getUserRepositories);
 
 router.get("/prs/:username", getUserPRs);

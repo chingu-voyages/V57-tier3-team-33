@@ -5,6 +5,7 @@ import { PRState } from "../types/github.types.js";
 // List public repositories of a user
 
 export async function getAllRepositoriesOfOwner(req: Request, res: Response, next: NextFunction) {
+    console.log("HERE")
     const { username } = req.params;
     const {
         page = '1',

@@ -1,7 +1,6 @@
 import { Octokit } from "octokit";
 import {
   GitHubRepo,
-  GitHubPullRequest,
   PRState,
   GitHubServiceOptions,
   GitHubError
@@ -160,7 +159,6 @@ async function getAllPRsForUser(
         order: "desc",
         per_page: perPage,
         page
-
       });
     } catch (err: any) {
       if (isRateLimitError(err)) {
@@ -179,10 +177,7 @@ async function getAllPRsForUser(
     }
 
     const items = response.data.items || [];
-    const formatted: FormattedPullRequest[] = items.map((item: any) => {
-      const [owner, repo] = (item.repository_url || "").split("/").slice(-2);
-      return PullRequestDTO.fromGitHubAPIToModel(item);
-    });
+    const formatted: FormattedPullRequest[] = items.map((item: any) => PullRequestDTO.fromGitHubSearchAPIToModel(item));
 
     const byRepo = new Map<string, FormattedPullRequest[]>();
     for (const pr of formatted) {

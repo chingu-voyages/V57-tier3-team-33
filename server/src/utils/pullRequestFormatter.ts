@@ -27,7 +27,7 @@ export interface FormatPullRequestResponseParams {
  * @returns Formatted response object
  */
 export function formatPullRequestResponse(params: FormatPullRequestResponseParams): PullRequestResponseFormat {
-  const { prs, pageNum, perPage, prState, username, totalPublicRepos, totalPRsOverride } = params;
+  const { prs, pageNum, perPage, prState, username, totalPRsOverride } = params;
 
   // Calculate total PRs across all repositories
   const totalPRs = typeof totalPRsOverride === 'number'

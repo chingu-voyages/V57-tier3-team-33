@@ -17,6 +17,10 @@ export async function fetchRepositoriesOfUser(username: string, page = 1, perPag
             // Pagination
             page: page,
             per_page: perPage,
+
+            // Sort
+            sort: "updated",
+            dir: "desc"
         });
 
         return {
@@ -59,7 +63,7 @@ export async function fetchPullRequestsOfRepo(
 
             // Sort
             sort: 'updated',
-            direction: 'asc'
+            direction: 'desc'
         });
 
         const prs = []

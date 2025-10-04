@@ -1,10 +1,9 @@
 import { Router } from "express";
 
-import { getAllRepositoriesOfOwner, getPullRequestsOfRepository } from "../controllers/RepositoryController";
+import { getAllRepositoriesOfUser } from "../controllers/RepositoryController";
 
 const router = Router();
 
-router.get('/repos/:username', getAllRepositoriesOfOwner);
-router.get('/repos/:owner/:repo/pulls', getPullRequestsOfRepository);
+router.get('/repos/:username', getAllRepositoriesOfUser);
 
 export default router;

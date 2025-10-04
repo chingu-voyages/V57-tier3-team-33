@@ -25,4 +25,24 @@ export class PullRequestDTO {
             last_review: ReviewDTO.fromGitHubAPIToModel(pr.last_review)
         }
     }
+
+    static fromGitHubSearchAPIToModel(pr: any): FormattedPullRequest {
+        return {
+            id: pr.id,
+            repo: pr.repository_url?.split("/").slice(-2)[1],
+            number: pr.number,
+            title: pr.title,
+            author: UserDTO.fromGitHubAPIToModel(pr.user),
+            url: pr.html_url,
+            state: pr.state,
+            created_at: pr.created_at,
+            updated_at: pr.updated_at,
+            closed_at: pr.closed_at || null,
+            merged_at: pr?.pull_request?.merged_at,
+            requested_reviewers:
+                (pr.requested_reviewers || [])
+                    .map((reviewer: GitHubUser) => UserDTO.fromGitHubAPIToModel(reviewer)),
+            last_review: ReviewDTO.fromGitHubAPIToModel(pr.last_review)
+        }
+    }
 }

@@ -1,11 +1,12 @@
-import { FormattedPullRequest, RepoWithPRs } from "../types/formatted.types";
+import { FormattedPullRequest, FormattedRepo, RepoWithPRs } from "../types/formatted.types";
 import {
   PullRequestResponseFormat,
   PRState,
   RepoPRResponseFormat,
   UserRepositoriesResponseFormat,
-  GitHubRepo
-
+  GitHubRepo,
+  Pagination,
+  Filters
 } from "../types/github.types";
 
 /**
@@ -49,6 +50,10 @@ export function formatPullRequestResponse(params: FormatPullRequestResponseParam
     filters: {
       state: prState,
       username
+    },
+    sort: {
+      sort_by: 'updated',
+      dir: 'desc'
     }
   };
 }
@@ -59,34 +64,26 @@ export function formatPullRequestResponse(params: FormatPullRequestResponseParam
  * @returns Formatted response object
  */
 export function formatRepoPRResponse(params: {
-  repo: string;
   pullRequests: FormattedPullRequest[];
-  pageNum: number;
-  perPage: number;
-  prState: PRState;
-  username: string;
+  pagination: Pagination,
+  state: PRState,
+  username: string,
+  repo: string
 }): RepoPRResponseFormat {
-  const { repo, pullRequests, pageNum, perPage, prState, username } = params;
-
-  // Calculate total pages based on pull requests count
-  const totalPages = Math.ceil(pullRequests.length / perPage);
+  const {  pullRequests, pagination, state, username, repo } = params;
 
   return {
     success: true,
-    data: {
-      repo,
-      pullRequests
-    },
-    pagination: {
-      page: pageNum,
-      per_page: perPage,
-      total_pages: totalPages,
-      total_records: pullRequests.length
-    },
+    data: pullRequests,
+    pagination: pagination,
     filters: {
-      state: prState,
-      username,
-      repo
+      state: state,
+      username: username,
+      repo: repo
+    },
+    sort: {
+      sort_by: 'updated',
+      dir: 'desc'
     }
   };
 }
@@ -97,28 +94,22 @@ export function formatRepoPRResponse(params: {
  * @returns Formatted response object
  */
 export function formatUserRepositoriesResponse(params: {
-  repos: GitHubRepo[];
-  pageNum: number;
-  perPage: number;
+  repos: FormattedRepo[];
+  pagination: Pagination;
   username: string;
-  totalPublicRepos: number;
 }): UserRepositoriesResponseFormat {
-  const { repos, pageNum, perPage, username, totalPublicRepos } = params;
-
-  // Calculate total pages based on total public repositories
-  const totalPages = Math.ceil(totalPublicRepos / perPage);
+  const { repos, pagination, username } = params;
 
   return {
     success: true,
     data: repos,
-    pagination: {
-      page: pageNum,
-      per_page: perPage,
-      total_pages: totalPages,
-      total_records: totalPublicRepos
-    },
+    pagination: pagination,
     filters: {
       username
+    },
+    sort: {
+      sort_by: 'updated',
+      dir: 'desc'
     }
   };
 }

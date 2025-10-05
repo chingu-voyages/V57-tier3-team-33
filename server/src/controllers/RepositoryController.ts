@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { fetchRepositoriesOfUser } from "../services/GitHubService"
+import { fetchRepositoriesOfUser } from "../services/github.repos"
 import { getGitHubRateLimit } from "../services/github.open.prs";
+import { formatUserRepositoriesResponse } from "../utils/pullRequestFormatter";
 
 // List public repositories of a user
 export async function getAllRepositoriesOfUser(req: Request, res: Response, next: NextFunction) {
@@ -18,7 +19,17 @@ export async function getAllRepositoriesOfUser(req: Request, res: Response, next
             fetchRepositoriesOfUser(username, pageNum, perPage),
             getGitHubRateLimit()
         ]);
-        res.status(200).json({ ...repos, rate_limit: rateLimit });
+
+        const response = formatUserRepositoriesResponse({
+            repos: repos.data,
+            pagination: repos.pagination,
+            username: username
+        });
+
+        res.status(200).json({
+            ...response,
+            rate_limit: rateLimit
+        });
     } catch (error) {
         next(error);
     }

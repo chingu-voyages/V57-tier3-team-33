@@ -8,7 +8,9 @@ import {
 } from "../types/github.types";
 import { FormattedReview, ReviewState, FailedOperation, ReviewsWithErrors, RepoWithReviewsAndErrors } from "../types/formatted.types";
 
-const octokit = new Octokit();
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN,
+});
 
 const MAX_REPOSITORIES_TO_PROCESS = 200;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

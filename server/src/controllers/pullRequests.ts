@@ -1,19 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import {
   getAllPRsForUser,
-  getRepoPRs,
-  getOwnerRepos,
-  getUserRepoCount,
   getGitHubRateLimit,
   getTotalPRCountViaSearch,
 } from "../services/github.open.prs";
-import { PRState, GitHubError } from "../types/github.types";
+import { PRState } from "../types/github.types";
 import {
   formatPullRequestResponse,
   formatRepoPRResponse,
-  formatUserRepositoriesResponse,
 } from "../utils/pullRequestFormatter";
-import { fetchPullRequestsOfRepo } from "../services/GitHubService";
+import { fetchPullRequestsOfRepo } from "../services/github.repos";
 
 // All PRs of a User
 export async function getUserPRs(req: Request, res: Response, next: NextFunction) {
@@ -75,8 +71,17 @@ export async function getPullRequestsOfRepository(req: Request, res: Response, n
       fetchPullRequestsOfRepo(username, repo, prState, pageNum, perPage),
       getGitHubRateLimit()
     ]);
+
+    const response = formatRepoPRResponse({
+      pullRequests: prs.data,
+      pagination: prs.pagination,
+      state: prState,
+      username: username,
+      repo: repo
+    });
+
     res.status(200).json({
-      ...prs,
+      ...response,
       rate_limit: rateLimit
     });
   } catch (error) {

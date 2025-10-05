@@ -1,4 +1,6 @@
-import { FailedOperation, FormattedPullRequest, FormattedReview, RepoWithPRs, RepoWithReviewsAndErrors } from "./formatted.types";
+import { FailedOperation, FormattedPullRequest, FormattedRepo, FormattedReview, RepoWithPRs, RepoWithReviewsAndErrors } from "./formatted.types";
+
+// GitHub API types
 
 export interface GitHubRepo {
     id: number;
@@ -68,18 +70,42 @@ export interface GitHubPullRequest {
     last_review: GitHubReview | null;
 }
 
+// Enums
+
 export type PRState = 'open' | 'closed' | 'all';
+
+// Others
 
 export interface GitHubServiceOptions {
     perPage?: number;
     page?: number;
 }
 
+export interface Pagination {
+    page: number;
+    per_page: number;
+    total_pages: number;
+    total_records: number;
+}
+
+export interface Filters {
+    state: PRState;
+    username: string;
+}
+
+export interface Sort {
+    sort_by: string,
+    dir: string
+}
+
+// Errors
 export interface GitHubError {
     message: string;
     status?: number;
     documentation_url?: string;
 }
+
+// Formatted types
 
 export interface GitHubReview {
     id: number;
@@ -92,50 +118,40 @@ export interface GitHubReview {
     commit_id: string;
 }
 
-// Response formatting interfaces
-export interface Pagination {
-    page: number;
-    per_page: number;
-    total_pages: number;
-    total_records: number;
-}
-
-export interface Filters {
-    state: string;
-    username: string;
-}
-
+// Final Response Format
 export interface PullRequestResponseFormat {
     success: boolean;
     data: RepoWithPRs[];
     pagination: Pagination;
     filters: Filters;
+    sort: Sort
 }
 
 // Repository PR Response Format
 export interface RepoPRResponseFormat {
     success: boolean;
-    data: {
-        repo: string;
-        pullRequests: FormattedPullRequest[];
-    };
+    data: FormattedPullRequest[];
     pagination: Pagination;
     filters: {
         state: PRState;
         username: string;
         repo: string;
     };
+    sort: Sort
 }
 
 // User Repositories Response Format
 export interface UserRepositoriesResponseFormat {
     success: boolean;
-    data: GitHubRepo[];
+    data: FormattedRepo[];
     pagination: Pagination;
     filters: {
         username: string;
     };
+    sort: Sort
 }
+
+// Reviews
 
 export interface PRReviewResponseFormat {
     success: boolean;
@@ -144,15 +160,8 @@ export interface PRReviewResponseFormat {
         pull_request_number: number;
         reviews: FormattedReview[];
     };
-    pagination: ReviewPagination;
+    pagination: Pagination;
     filters: ReviewFilters;
-}
-
-export interface ReviewPagination {
-    page: number;
-    per_page: number;
-    total_pages: number;
-    total_records: number;
 }
 
 export interface ReviewFilters {
@@ -168,7 +177,7 @@ export interface RepoReviewResponseFormat {
         repo: string;
         reviews: FormattedReview[];
     };
-    pagination: ReviewPagination;
+    pagination: Pagination;
     filters: ReviewFilters;
     statistics: ReviewStatistics;
     failed_operations: FailedOperation[];
@@ -177,12 +186,11 @@ export interface RepoReviewResponseFormat {
 export interface UserReviewResponseFormat {
     success: boolean;
     data: RepoWithReviewsAndErrors[];
-    pagination: ReviewPagination;
+    pagination: Pagination;
     filters: ReviewFilters;
     statistics: ReviewStatistics;
     failed_operations: FailedOperation[];
 }
-
 
 export interface ReviewStatistics {
     success_count: number;

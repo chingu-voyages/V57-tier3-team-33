@@ -92,7 +92,7 @@ export async function fetchPullRequestsOfRepo(
     }
 }
 
-async function fetchLastReviewOfPullRequest(owner: string, repo: string, pullNumber: number) {
+export async function fetchLastReviewOfPullRequest(owner: string, repo: string, pullNumber: number) {
     try {
         const response = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
             owner: owner,

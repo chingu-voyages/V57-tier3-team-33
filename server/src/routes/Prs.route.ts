@@ -1,13 +1,10 @@
 import { Router } from "express";
-import { getUserPRs, getUserRepoPRs, getUserRepositories } from "../controllers/pullRequests";
+import { getPullRequestsOfRepository, getUserPRs } from "../controllers/pullRequests";
 
 const router = Router();
 
-
-router.get("/repos/:username", getUserRepositories);
-
 router.get("/prs/:username", getUserPRs);
 
-router.get("/prs/:username/:repo", getUserRepoPRs);
+router.get("/prs/:username/:repo", getPullRequestsOfRepository);
 
 export default router;

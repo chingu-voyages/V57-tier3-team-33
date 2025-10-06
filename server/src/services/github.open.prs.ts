@@ -1,13 +1,12 @@
 import { Octokit } from "octokit";
 import {
-  GitHubRepo,
-  GitHubPullRequest,
   PRState,
   GitHubServiceOptions,
   GitHubError
 } from "../types/github.types";
 import { FormattedPullRequest, RepoWithPRs } from "../types/formatted.types";
 import { PullRequestDTO } from "../dtos/PullRequestDTO";
+import { fetchLastReviewOfPullRequest } from "./github.repos";
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
@@ -23,121 +22,9 @@ function isRateLimitError(error: any): boolean {
   return status === 403 && (remaining === '0' || message.includes('rate limit') || message.includes('quota exhausted'));
 }
 
-async function getUserRepoCount(username: string): Promise<number> {
-  try {
-    const response = await octokit.request("GET /users/{username}", {
-      username
-    });
-
-    const actualCount = response.data.public_repos;
-    console.log(`User ${username} has ${actualCount} public repos`);
-    return actualCount;
-  } catch (error: any) {
-    const githubError: GitHubError = {
-      message: error.message || "Error fetching user repository count",
-      status: error.status,
-      documentation_url: error.response?.data?.documentation_url
-    };
-
-    console.error("Error fetching user repository count:", githubError);
-    throw githubError;
-  }
-}
-
 async function getUserType(username: string): Promise<string> {
   const response = await octokit.request("GET /users/{username}", { username });
   return (response.data as any)?.type || "User";
-}
-
-async function getOwnerRepos(
-  owner: string,
-  options: GitHubServiceOptions = {}
-): Promise<GitHubRepo[]> {
-  try {
-    const { perPage = 30, page = 1 } = options;
-    const accountType = await getUserType(owner);
-    const isOrg = accountType === "Organization";
-
-    let response: any;
-    try {
-      response = await octokit.request(isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos", {
-        org: isOrg ? owner : undefined,
-        username: isOrg ? undefined : owner,
-        per_page: perPage,
-        page,
-        sort: "updated",
-        direction: "desc"
-      } as any);
-    } catch (err: any) {
-      if (isRateLimitError(err)) {
-        console.warn(`Rate limit encountered while fetching repos for ${owner}. Retrying once.`);
-        await sleep(1000);
-        response = await octokit.request(isOrg ? "GET /orgs/{org}/repos" : "GET /users/{username}/repos", {
-          org: isOrg ? owner : undefined,
-          username: isOrg ? undefined : owner,
-          per_page: perPage,
-          page,
-          sort: "updated",
-          direction: "desc"
-        } as any);
-      } else {
-        throw err;
-      }
-    }
-
-    return response.data as GitHubRepo[];
-  } catch (error: any) {
-    const githubError: GitHubError = {
-      message: error.message || "Error fetching repositories",
-      status: error.status,
-      documentation_url: error.response?.data?.documentation_url
-    };
-    console.error("Error fetching repositories:", githubError);
-    throw githubError;
-  }
-}
-
-async function getRepoPRs(
-  owner: string,
-  repo: string,
-  state: PRState = "open",
-  options: GitHubServiceOptions = {}
-): Promise<FormattedPullRequest[]> {
-  try {
-    const { perPage = 30, page = 1 } = options;
-
-    const response = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
-      owner,
-      repo,
-      state,
-      per_page: perPage,
-      page,
-      sort: "updated",
-      direction: "desc"
-    });
-
-    return response.data.map((pr: any) => ({
-      repo,
-      number: pr.number,
-      title: pr.title,
-      user: pr.user?.login,
-      url: pr.html_url,
-      state: pr.state as 'open' | 'closed',
-      created_at: pr.created_at,
-      updated_at: pr.updated_at,
-      closed_at: pr.closed_at,
-      merged_at: pr.merged_at,
-    }));
-  } catch (error: any) {
-    const githubError: GitHubError = {
-      message: error.message || `Error fetching ${state} pull requests for ${owner}/${repo}`,
-      status: error.status,
-      documentation_url: error.response?.data?.documentation_url
-    };
-
-    console.error(`Error fetching pull requests for ${owner}/${repo}:`, githubError);
-    throw githubError;
-  }
 }
 
 async function getAllPRsForUser(
@@ -160,7 +47,6 @@ async function getAllPRsForUser(
         order: "desc",
         per_page: perPage,
         page
-
       });
     } catch (err: any) {
       if (isRateLimitError(err)) {
@@ -178,11 +64,15 @@ async function getAllPRsForUser(
       }
     }
 
-    const items = response.data.items || [];
-    const formatted: FormattedPullRequest[] = items.map((item: any) => {
-      const [owner, repo] = (item.repository_url || "").split("/").slice(-2);
-      return PullRequestDTO.fromGitHubAPIToModel(item);
-    });
+    const items = [];
+    for (const pr of response.data.items) {
+      const [owner, repo] = pr.repository_url?.split("/").slice(-2);
+      const lastReview = await fetchLastReviewOfPullRequest(owner, repo, pr.number);
+      pr.last_review = lastReview;
+      items.push(pr);
+    }
+
+    const formatted: FormattedPullRequest[] = items.map((item: any) => PullRequestDTO.fromGitHubSearchAPIToModel(item));
 
     const byRepo = new Map<string, FormattedPullRequest[]>();
     for (const pr of formatted) {
@@ -206,12 +96,6 @@ async function getAllPRsForUser(
     throw githubError;
   }
 }
-
-const getOpenRepoPrs = (owner: string, repo: string, options?: GitHubServiceOptions) =>
-  getRepoPRs(owner, repo, "open", options);
-
-const getAllOpenPRsForUser = (username: string, options?: GitHubServiceOptions) =>
-  getAllPRsForUser(username, "open", options);
 
 async function getGitHubRateLimit(): Promise<{
   limit: number;
@@ -276,12 +160,7 @@ async function getTotalPRCountViaSearch(owner: string, state: PRState = "open"):
   }
 }
 export {
-  getOwnerRepos,
-  getUserRepoCount,
-  getRepoPRs,
   getAllPRsForUser,
-  getOpenRepoPrs,
-  getAllOpenPRsForUser,
   getGitHubRateLimit,
   getTotalPRCountViaSearch,
 };

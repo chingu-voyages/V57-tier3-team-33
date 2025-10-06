@@ -20,7 +20,7 @@ export interface FormattedPullRequest {
     title: string;
     author: FormattedUser | null;
     url: string;
-    state: 'open' | 'closed';
+    state: 'open' | 'closed' | 'all';
     created_at: string;
     updated_at: string;
     closed_at?: string | null;

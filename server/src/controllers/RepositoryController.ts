@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { fetchPullRequestsOfRepo, fetchRepositoriesOfUser } from "../services/GitHubService"
-import { PRState } from "../types/github.types.js";
+import { fetchRepositoriesOfUser } from "../services/github.repos"
+import { getGitHubRateLimit } from "../services/github.open.prs";
+import { formatUserRepositoriesResponse } from "../utils/pullRequestFormatter";
 
 // List public repositories of a user
-
-export async function getAllRepositoriesOfOwner(req: Request, res: Response, next: NextFunction) {
+export async function getAllRepositoriesOfUser(req: Request, res: Response, next: NextFunction) {
     const { username } = req.params;
     const {
         page = '1',
@@ -15,28 +15,21 @@ export async function getAllRepositoriesOfOwner(req: Request, res: Response, nex
         const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
         const pageNum = Math.max(parseInt(page as string) || 1, 1);
 
-        const repos = await fetchRepositoriesOfUser(username, pageNum, perPage);
-        res.status(200).json(repos);
-    } catch (error) {
-        next(error);
-    }
-}
+        const [repos, rateLimit] = await Promise.all([
+            fetchRepositoriesOfUser(username, pageNum, perPage),
+            getGitHubRateLimit()
+        ]);
 
-// List Pull Requests of a public repository
+        const response = formatUserRepositoriesResponse({
+            repos: repos.data,
+            pagination: repos.pagination,
+            username: username
+        });
 
-export async function getPullRequestsOfRepository(req: Request, res: Response, next: NextFunction) {
-    const { repo, owner } = req.params;
-    const { state = 'open', page = '1', per_page = '30' } = req.query;
-
-    try {
-        const validStates: PRState[] = ['open', 'closed', 'all'];
-        const prState = validStates.includes(state as PRState) ? state as PRState : 'open';
-
-        const perPage = Math.min(Math.max(parseInt(per_page as string) || 30, 1), 100);
-        const pageNum = Math.max(parseInt(page as string) || 1, 1);
-
-        const prs = await fetchPullRequestsOfRepo(owner, repo, prState, pageNum, perPage);
-        res.status(200).json(prs);
+        res.status(200).json({
+            ...response,
+            rate_limit: rateLimit
+        });
     } catch (error) {
         next(error);
     }

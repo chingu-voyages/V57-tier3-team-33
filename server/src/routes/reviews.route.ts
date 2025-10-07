@@ -47,6 +47,10 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Aggregated reviews with pagination and stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserReviewResponse'
  */
 router.get("/reviews/:username", getUserReviews);
 
@@ -87,6 +91,10 @@ router.get("/reviews/:username", getUserReviews);
  *     responses:
  *       200:
  *         description: Reviews for the repository with pagination and stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RepoReviewResponse'
  */
 router.get("/reviews/:username/:repo", getUserRepoReviews);
 
@@ -126,6 +134,10 @@ router.get("/reviews/:username/:repo", getUserRepoReviews);
  *     responses:
  *       200:
  *         description: Reviews for the pull request with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PRReviewResponse'
  */
 router.get("/reviews/:username/:repo/:pullNumber", getPRReviews);
 
@@ -161,6 +173,10 @@ router.get("/reviews/:username/:repo/:pullNumber", getPRReviews);
  *     responses:
  *       200:
  *         description: Reviews by reviewer with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReviewerReviewsResponse'
  */
 router.get("/reviewer/:reviewer", getReviewsByReviewer);
 
@@ -185,6 +201,10 @@ router.get("/reviewer/:reviewer", getReviewsByReviewer);
  *     responses:
  *       200:
  *         description: Review statistics with success/failure counts and totals
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ReviewStatsResponse'
  */
 router.get("/stats/:username", getReviewStats);
 

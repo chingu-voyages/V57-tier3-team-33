@@ -42,6 +42,10 @@ const router = Router();
  *     responses:
  *       200:
  *         description: List of PRs grouped by repository with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PullRequestResponse'
  */
 router.get("/prs/:username", getUserPRs);
 
@@ -81,6 +85,10 @@ router.get("/prs/:username", getUserPRs);
  *     responses:
  *       200:
  *         description: List of PRs for the repository with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RepoPRResponse'
  */
 router.get("/prs/:username/:repo", getPullRequestsOfRepository);
 

@@ -1,4 +1,6 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import { PORT } from "./env";
+import { swaggerComponents } from './swagger.components'; 
 
 const options = {
   definition: {
@@ -9,12 +11,15 @@ const options = {
       description: 'API documentation for PRs, Reviews, and Repositories',
     },
     servers: [
-      { url: `http://localhost:${process.env.PORT || 3000}`, description: 'Local server' },
+      { url: `http://localhost:${PORT}`, description: 'Local server' },
     ],
+    // Shared component schemas (responses-only)
+    components: {
+      schemas: swaggerComponents.schemas,
+    }
   },
   apis: [
     './src/routes/**/*.ts',
-    './src/controllers/**/*.ts',
   ],
 };
 

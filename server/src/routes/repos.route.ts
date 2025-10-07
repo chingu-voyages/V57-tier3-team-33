@@ -36,6 +36,10 @@ const router = Router();
  *     responses:
  *       200:
  *         description: List of repositories with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserRepositoriesResponse'
  */
 router.get('/repos/:username', getAllRepositoriesOfUser);
 

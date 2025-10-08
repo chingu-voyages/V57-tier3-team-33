@@ -1,9 +1,9 @@
 name: CI Pipeline
 on:
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main", "frontend-dev"]
   push:
-    branches: ["main", "dev"]
+    branches: ["main", "frontend-dev"]
 
 jobs:
   frontend:
@@ -21,8 +21,17 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 curl
+
       - name: Install dependencies
-        run: npm ci --force
+        run: |
+          cd client
+          rm -rf node_modules
+          npm ci
+          npm rebuild lightningcss --verbose
 
       - name: Run ESLint on client
         run: npm run lint --workspace=client
@@ -43,8 +52,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci --force
 

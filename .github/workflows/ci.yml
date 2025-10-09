@@ -24,8 +24,11 @@ jobs:
 
       - name: Install dependencies (workspace root)
         run: |
-          cd client
-          npm ci
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
 
       - name: Run ESLint on client
         run: npm run lint --workspace=client
@@ -38,7 +41,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [20.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +54,10 @@ jobs:
 
       - name: Install dependencies (workspace root)
         run: |
-          cd server
-          npm ci
-      - name: Check server syntax
-        run: node --check server/src/server.ts
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+      - name: Type-check server (tsc noEmit)
+        run: npm exec --workspace=server tsc -p tsconfig.json --noEmit

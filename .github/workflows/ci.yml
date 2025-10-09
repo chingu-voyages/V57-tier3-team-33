@@ -1,9 +1,9 @@
 name: CI Pipeline
 on:
   pull_request:
-    branches: ["main", "frontend-dev"]
+    branches: ["main", "dev"]
   push:
-    branches: ["main", "frontend-dev"]
+    branches: ["main", "dev"]
 
 jobs:
   frontend:

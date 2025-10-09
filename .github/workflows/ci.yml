@@ -19,12 +19,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: package-lock.json
-      
 
       - name: Install dependencies (workspace root)
-        run: npm ci
+        run: |
+          cd client
+          npm ci
 
       - name: Run ESLint on client
         run: npm run lint --workspace=client
@@ -49,7 +50,8 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (workspace root)
-        run: npm ci
+        run: |
+          cd server
+          npm ci
       - name: Check server syntax
         run: node --check server/src/server.ts
-

@@ -25,9 +25,9 @@ jobs:
       - name: Install dependencies (workspace root)
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci -ws --include-workspace-root || npm install -ws --include-workspace-root --no-audit --no-fund
           else
-            npm install --no-audit --no-fund
+            npm install -ws --include-workspace-root --no-audit --no-fund
           fi
 
       - name: Run ESLint on client
@@ -55,9 +55,9 @@ jobs:
       - name: Install dependencies (workspace root)
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci -ws --include-workspace-root || npm install -ws --include-workspace-root --no-audit --no-fund
           else
-            npm install --no-audit --no-fund
+            npm install -ws --include-workspace-root --no-audit --no-fund
           fi
       - name: Type-check server (tsc noEmit)
         run: npm exec --workspace=server tsc -p tsconfig.json --noEmit

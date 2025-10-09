@@ -60,4 +60,4 @@ jobs:
             npm install -ws --include-workspace-root --no-audit --no-fund
           fi
       - name: Type-check server (tsc noEmit)
-        run: npm exec --workspace=server tsc -p tsconfig.json --noEmit
+        run: npm run typecheck --workspace=server

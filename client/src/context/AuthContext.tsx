@@ -13,8 +13,8 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     error: string | null;
-    logIn: () => {};
-    logOut: () => {};
+    logIn: (redirectPath?: string) => Promise<void>;
+    logOut: () => Promise<void>;
 }
 
 const AuthContext = createContext({} as AuthContextType);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return unsubscribe;
     }, []);
 
-    async function logIn() {
+    async function logIn(redirectPath?: string) {
         setLoading(true);
         setError(null);
 
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem("user", JSON.stringify({ username, avatarUrl }))
             setUser({ username, avatarUrl });
 
-            navigate("/");
+            navigate(redirectPath || "/dashboard");
         } catch (err: any) {
             setError(err.message || "An unexpected error occured");
         } finally {

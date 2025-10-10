@@ -1,10 +1,13 @@
 import { PBLogo } from "../components/brand";
 import GitHub from "../components/icons/github";
 import { useAuth } from "../context/AuthContext";
+import { useLocation } from "react-router-dom";
 
 
 export default function Auth() {
   const { loading, logIn, error } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/dashboard";
 
   return (
     <main className="grid grid-cols-1 md:grid-cols-2">
@@ -23,7 +26,7 @@ export default function Auth() {
           <h3 className="text-lg text-gray-600 mb-8">Login to start tracking your pull requests</h3>
           <p className="text-gray-500">Sign in with your GitHub account</p>
           <button
-            onClick={logIn}
+            onClick={() => logIn(from)}
             className="flex bg-black text-white py-3 px-8 items-center gap-3 rounded-lg w-fit mt-8 text-lg hover:bg-gray-800 transition-colors">
             <GitHub />
             <span className="">Sign in with GitHub {loading && "..."}</span>

@@ -1,14 +1,14 @@
 import { api } from "../lib/axios";
 
+const baseUrl = import.meta.env.VITE_API_URL;
 export async function signIn(idToken: string, githubAccessToken: string) {
-    const url = "http://localhost:3200/api/login";
-    const response = await api.request({
-        url,
-        method: "POST",
-        data: {
-            idToken,
-            githubAccessToken
-        }
-    });
-    return response.status === 200 ? response.data : null;
+  const response = await api.request({
+    url: `${baseUrl}/auth/signin`,
+    method: "POST",
+    data: {
+      idToken,
+      githubAccessToken,
+    },
+  });
+  return response.status === 200 ? response.data : null;
 }

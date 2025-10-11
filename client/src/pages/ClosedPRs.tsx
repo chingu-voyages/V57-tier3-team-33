@@ -1,19 +1,49 @@
-import React, { useState } from "react"; // Import useState
+import React, { useState, useEffect } from "react"; // Import useState
 import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
+import { useFetch } from "../hooks/useFetch";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../config/firebase";
+import ClosedPR from "../components/icons/closedPR";
+import MergedPR from "../components/icons/mergedPR";
+import { format, isToday, isYesterday } from "date-fns";
+
 
 const ClosedPRs: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true); // State for loading
-  const [prs, setPrs] = useState([]); // State for PRs data
+  // const [isLoading, setIsLoading] = useState(true); // State for loading
+  // const [prs, setPrs] = useState([]); // State for PRs data
 
-  // Simulate data fetching
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //     // setPrs([...some data...]); // Uncomment and add data to test empty state
-  //   }, 2000);
-  // }, []);
+  // Fetching prs from the backend
+  const { user } = useAuth();
+  const username = user?.username;
+  const [token, setToken] = useState<string | undefined>(undefined);
+
+  //  Getting Firebase token
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await auth.currentUser?.getIdToken();
+      setToken(token || undefined);
+    };
+    fetchToken();
+  }, []);
+
+  // Calling custom hook when token + username exist
+  const { data, isLoading, error } = useFetch(
+    ["openPRs", username],
+    username ? `http://localhost:3200/api/prs/${username}?state=closed` : "",
+    {},
+    undefined,
+    token
+  );
+
+  // formatting date
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    if (isToday(date)) return "Today";
+    if (isYesterday(date)) return "Yesterday";
+    return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
+  };
 
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
@@ -44,7 +74,7 @@ const ClosedPRs: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {" "}
           {/* Adjusted grid for inputs + buttons */}
-          <div className="flex flex-col">
+          <div className="flex flex-col ">
             <label
               htmlFor="author"
               className="text-sm font-medium text-gray-700 mb-1"
@@ -110,11 +140,16 @@ const ClosedPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              0 Closed Pull Requests
+              {data?.data?.length} Closed Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="sort-by" className="text-sm font-medium text-gray-700">Sort by:</label>
+            <label
+              htmlFor="sort-by"
+              className="text-sm font-medium text-gray-700"
+            >
+              Sort by:
+            </label>
             <select
               id="sort-by"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
@@ -130,14 +165,37 @@ const ClosedPRs: React.FC = () => {
           <div className="flex justify-center items-center py-10">
             <LottieLoader />
           </div>
-        ) : prs.length === 0 ? (
+        ) : error || data === undefined || data?.data?.length === 0 ? (
           <div className="flex justify-center items-center py-10">
             <LottieEmptyState message="No closed pull requests found." />
           </div>
         ) : (
-          <div className="p-20 text-center text-gray-500">
+          <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
-            List of Closed Pull Requests
+            {data?.data?.map((PR, index) => (
+              <div key={index} className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100">
+                {/* details */}
+                <a href={PR?.pullRequests?.[0].url}>
+                  <div className="flex flex-col gap-2 cursor-pointer">
+                    <div className="flex gap-2 font-semibold">
+                      {/* checking for merged for icon */}
+                      {PR?.pullRequests?.[0].merged_at ? (
+                        <MergedPR className="w-5 h-5 text-purple-700" />
+                      ) : (
+                        <ClosedPR className="w-5 h-5 text-green-700" />
+                      )}
+                      <div className="text-gray-600">{PR?.repo}</div>
+                      <div>{PR?.pullRequests?.[0].title}</div>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      #{PR?.pullRequests?.[0].number} by{" "}
+                      {PR?.pullRequests?.[0].author?.username} was merged at{" "}
+                      {formatDate(PR?.pullRequests?.[0].closed_at)}
+                    </div>
+                  </div>
+                </a>
+              </div>
+            ))}
           </div>
         )}
       </section>

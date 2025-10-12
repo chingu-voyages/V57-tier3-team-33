@@ -1,4 +1,4 @@
-# PullBoard - Chingu Voyage 57, T33, tier 3
+# PullBoard - Chingu Voyage 57, T33
 
 <p align="center" />
 <img width="800" alt="PullBoard hero" src="https://github.com/user-attachments/assets/6508a3cc-6f45-43e0-b8d9-27485a8f48a3" />

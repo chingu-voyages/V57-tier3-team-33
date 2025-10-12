@@ -1,3 +1,6 @@
+import { useMemo } from "react";
+import { PullRequest } from "../../types/PullRequest.types";
+import { all } from "axios";
 
 interface Contributor {
   name: string;
@@ -6,7 +9,11 @@ interface Contributor {
   successRate: string;
 }
 
-export default function TopContributers() {
+interface ContributorMap {
+  username: { prsCreated: number, prsMerged: number, successRate: number }
+}
+
+export default function TopContributers({ allprs }: { allprs: PullRequest[] }) {
   const contributors: Contributor[] = [
     { name: "John Doe", prsCreated: 15, prsMerged: 12, successRate: "80%" },
     { name: "Jane Smith", prsCreated: 10, prsMerged: 9, successRate: "90%" },
@@ -14,11 +21,29 @@ export default function TopContributers() {
     { name: "Alice Brown", prsCreated: 8, prsMerged: 8, successRate: "100%" },
   ];
 
+  const stats = useMemo(() => {
+    const map: Record<string, Contributor> = {}
+    allprs.forEach((pr) => {
+      if (!map[pr.author.username])
+        map[pr.author.username] = { name: pr.author.username, prsCreated: 0, prsMerged: 0, successRate: "0%" }
+
+      map[pr.author.username].prsCreated = map[pr.author.username].prsCreated + 1;
+      if (pr.merged_at) {
+        map[pr.author.username].prsMerged = map[pr.author.username].prsMerged + 1;
+      }
+    })
+    Object.keys(map).forEach((key) => {
+      map[key].successRate = `${(map[key].prsMerged / map[key].prsCreated * 100).toFixed(2)}%`
+    });
+
+    return { contributors: Object.values(map) }
+
+  }, [allprs])
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
       <h3 className="text-3xl font-bold text-gray-800 mb-6">Top Contributors</h3>
       <div className="bg-white p-6 rounded-lg shadow-sm overflow-x-auto"> {/* Responsive table container */}
-        {contributors.length > 0 ? (
+        {stats.contributors.length > 0 ? (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -37,7 +62,7 @@ export default function TopContributers() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {contributors.map((contributor, index) => (
+              {stats.contributors.map((contributor, index) => (
                 <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {contributor.name}

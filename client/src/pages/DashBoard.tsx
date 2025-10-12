@@ -1,37 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { GitPR, Team } from "../components/icons";
 import GraphicActivity from "../components/layout/GraphicActivity";
 import TopContributers from "../components/layout/TopContributers";
 import { Clock } from "../components/ui"; // Import Clock icon
 import CheckCircle from "../components/ui/checkCircle";
-import { useFetch } from "../hooks/useFetch";
 import { useToken } from "../hooks/useToken";
-import { useAllPages } from "../hooks/useFetchPRsOfRepo";
+import { useFetchAllPRsOfRepo } from "../hooks/useFetchAllPRsOfRepo";
+import PRStatusStat from "../components/statistics/PRStatusStat";
+import { PullRequest } from "../types/PullRequest.types";
 
 export default function DashBoard() {
-  const url = "http://localhost:3200/api/prs/chingu-voyages/V57-tier3-team-33";
+  const url = `${import.meta.env.VITE_API_URL}/api/prs/chingu-voyages/V57-tier3-team-33`;
   const { data: token } = useToken();
-  const { data: firstPage } = useFetch<{
-    pagination: any
-  }>(
-    "prs-from-repo",
-    `${url}?state=all`,
-    undefined,
-    undefined,
-    token);
-
-  const lastPage = firstPage?.pagination.total_pages;
-
-  const { data, isLoading, error } = useAllPages(url, lastPage, token);
+  const { data, isLoading } = useFetchAllPRsOfRepo<{ data: PullRequest[] }>(url, token);
 
   useEffect(() => {
-    console.log(`Last page: ${lastPage}`)
-    if (error)
-      console.log(error)
     if (!isLoading) {
+      console.log(isLoading)
       console.log(data)
     }
-  }, [isLoading]);
+  }, [isLoading])
 
   const stats = [
     {
@@ -66,7 +54,7 @@ export default function DashBoard() {
 
   return (
     <>
-      {isLoading ? <p>Loading....</p> : <p>Done</p>}
+      {!isLoading && data && <PRStatusStat allprs={data.data} />}
       {" "}
       <main className="max-w-screen-xl mx-auto py-8 px-4">
         <div className="mb-8">

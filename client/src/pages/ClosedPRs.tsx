@@ -9,6 +9,7 @@ import { auth } from "../config/firebase";
 import ClosedPR from "../components/icons/closedPR";
 import MergedPR from "../components/icons/mergedPR";
 import { format, isToday, isYesterday } from "date-fns";
+import type { PRResponseEnvelope } from "../types/pr";
 
 const ClosedPRs: React.FC = () => {
   // Fetching prs from the backend
@@ -16,6 +17,8 @@ const ClosedPRs: React.FC = () => {
   const username = user?.username;
   const [token, setToken] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState<string>("updated"); // 'newest' | 'oldest' | 'comments' | 'updated'
+  const [page, setPage] = useState<number>(1);
+  const perPage = 10;
 
   //  Getting Firebase token
   useEffect(() => {
@@ -27,19 +30,21 @@ const ClosedPRs: React.FC = () => {
   }, []);
 
   // Calling custom hook when token + username exist
-  const { data, isLoading, error, refetch } = useFetch(
-    ["closedPRs", username],
+  const { data, isLoading, isFetching, error, refetch } = useFetch<PRResponseEnvelope>(
+    ["closedPRs", username, page, perPage],
     username
-      ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=closed`
+      ? `${
+          import.meta.env.VITE_API_URL
+        }/api/prs/${username}?state=closed&per_page=${perPage}&page=${page}`
       : "",
     {},
     undefined,
     token
   );
 
-  // Flatten server response groups { repo, pullRequests: [...] } into a single list
+
   const prs = useMemo(() => {
-    const groups = (data?.data as any[]) || [];
+    const groups = data?.data ?? [];
     return groups.flatMap((g: any) =>
       (g?.pullRequests || []).map((pr: any) => ({
         ...pr,
@@ -75,17 +80,30 @@ const ClosedPRs: React.FC = () => {
         return list.sort((a, b) => closedTime(a) - closedTime(b));
       case "comments": {
         // If comments count is not available, fallback to updated_at descending
-        const getComments = (p: any) => (typeof p?.comments === "number" ? p.comments : 0);
+        const getComments = (p: any) =>
+          typeof p?.comments === "number" ? p.comments : 0;
         return list.sort((a, b) => {
           const c = getComments(b) - getComments(a);
-          return c !== 0 ? c : safeTime(b?.updated_at) - safeTime(a?.updated_at);
+          return c !== 0
+            ? c
+            : safeTime(b?.updated_at) - safeTime(a?.updated_at);
         });
       }
       case "updated":
       default:
-        return list.sort((a, b) => safeTime(b?.updated_at) - safeTime(a?.updated_at));
+        return list.sort(
+          (a, b) => safeTime(b?.updated_at) - safeTime(a?.updated_at)
+        );
     }
   }, [prs, sortBy]);
+
+  const totalCount = data?.pagination?.total_records ?? sortedPRs.length;
+  const totalPages = Math.max(
+    1,
+    data?.pagination?.total_pages ?? Math.ceil(totalCount / perPage)
+  );
+
+  // perPage fixed at 10
 
   // formatting date with guards for null/invalid values
   const formatDate = (isoString?: string | null) => {
@@ -105,16 +123,20 @@ const ClosedPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            {data?.pagination.total_records} Closed Pull Requests
+            {isLoading ? "Loading" : totalCount} Closed Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all closed pull requests
           </p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200" onClick={() => refetch()}>
+          <button
+            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+            onClick={() => refetch()}
+            disabled={isLoading || isFetching}
+          >
             <Refresh width={20} fill="#fff" />
-            <span>Refresh</span>
+            <span>{isFetching ? "Refreshing..." : "Refresh"}</span>
           </button>
           <ExportButton
             data={sortedPRs}
@@ -175,7 +197,7 @@ const ClosedPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              {data?.pagination.total_records} Closed Pull Requests
+              {isLoading ? "Loading" : totalCount} Closed Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -196,6 +218,7 @@ const ClosedPRs: React.FC = () => {
               <option value="comments">Most Comments</option>
               <option value="updated">Last Updated</option>
             </select>
+            {/* Per-page fixed at 10; selector removed */}
           </div>
         </div>
         {isLoading ? (
@@ -228,7 +251,8 @@ const ClosedPRs: React.FC = () => {
                       <div>{PR?.title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.number} by {PR?.author?.username} was {PR?.merged_at ? "merged" : "closed"} {" "}
+                      #{PR?.number} by {PR?.author?.username} was{" "}
+                      {PR?.merged_at ? "merged" : "closed"}{" "}
                       {PR?.merged_at ? (
                         <span>{formatDate(PR?.merged_at)}</span>
                       ) : (
@@ -239,6 +263,47 @@ const ClosedPRs: React.FC = () => {
                 </a>
               </div>
             ))}
+            <div className="flex items-center justify-between mt-4 text-sm text-gray-700">
+              <div>
+                Showing {(page - 1) * perPage + 1}–
+                {Math.min(page * perPage, totalCount)} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {(() => {
+                  const getPageNumbers = (current: number, total: number) => {
+                    if (total <= 7)
+                      return Array.from({ length: total }, (_, i) => i + 1);
+                    const pages: (number | string)[] = [1];
+                    const start = Math.max(2, current - 2);
+                    const end = Math.min(total - 1, current + 2);
+                    if (start > 2) pages.push("...");
+                    for (let i = start; i <= end; i++) pages.push(i);
+                    if (end < total - 1) pages.push("...");
+                    pages.push(total);
+                    return pages;
+                  };
+                  return getPageNumbers(page, totalPages).map((p, idx) =>
+                    typeof p === "number" ? (
+                      <button
+                        key={p}
+                        className={`border px-3 py-1 rounded ${
+                          p === page
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "border-gray-300 hover:bg-gray-100"
+                        }`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ) : (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-500">
+                        …
+                      </span>
+                    )
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
       </section>

@@ -24,8 +24,7 @@ export function useFetch<TData = unknown>(
       return response.data;
     },
     enabled: !!token,
-    ...options,
-    enabled: !!token
+    ...options
   });
 
 

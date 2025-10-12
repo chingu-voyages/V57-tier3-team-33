@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"; // Import useState
-import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
+import { Filter, GitPR, Refresh, X } from "../components/icons";
+import ExportButton from "../components/ExportButton";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
 import { useFetch } from "../hooks/useFetch";
@@ -115,10 +116,10 @@ const ClosedPRs: React.FC = () => {
             <Refresh width={20} fill="#fff" />
             <span>Refresh</span>
           </button>
-          <button className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
-            <Export width={20} fill="#000" />
-            <span>Export JSON</span>
-          </button>
+          <ExportButton
+            data={sortedPRs}
+            filename={`closed-prs-${username || "user"}.json`}
+          />
         </div>
       </section>
 

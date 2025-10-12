@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, createContext, ReactNode } from "react";
+import { useContext, useEffect, useState, createContext, ReactNode, useMemo } from "react";
 import { auth } from "../config/firebase";
 import { GithubAuthProvider, onAuthStateChanged, signInWithPopup } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
+    const [pending, setPending] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -35,10 +36,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(JSON.parse(storedUser))
         }
 
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             if (!currentUser) {
                 setUser(null)
             }
+            setPending(false);
         })
         return unsubscribe;
     }, []);
@@ -86,13 +88,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         navigate("/")
     }
 
-    const value = {
-        user,
-        loading,
-        error,
-        logIn,
-        logOut
-    };
+
+    if (pending) {
+        return <></>
+    }
+
+    const value = { user, loading, error, logIn, logOut }
 
     return (
         <AuthContext.Provider value={value} >

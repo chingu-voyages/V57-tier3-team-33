@@ -1,10 +1,38 @@
+import { useEffect, useState } from "react";
 import { GitPR, Team } from "../components/icons";
 import GraphicActivity from "../components/layout/GraphicActivity";
 import TopContributers from "../components/layout/TopContributers";
 import { Clock } from "../components/ui"; // Import Clock icon
 import CheckCircle from "../components/ui/checkCircle";
+import { useFetch } from "../hooks/useFetch";
+import { useToken } from "../hooks/useToken";
+import { useAllPages } from "../hooks/useFetchPRsOfRepo";
 
 export default function DashBoard() {
+  const url = "http://localhost:3200/api/prs/chingu-voyages/V57-tier3-team-33";
+  const { data: token } = useToken();
+  const { data: firstPage } = useFetch<{
+    pagination: any
+  }>(
+    "prs-from-repo",
+    `${url}?state=all`,
+    undefined,
+    undefined,
+    token);
+
+  const lastPage = firstPage?.pagination.total_pages;
+
+  const { data, isLoading, error } = useAllPages(url, lastPage, token);
+
+  useEffect(() => {
+    console.log(`Last page: ${lastPage}`)
+    if (error)
+      console.log(error)
+    if (!isLoading) {
+      console.log(data)
+    }
+  }, [isLoading]);
+
   const stats = [
     {
       icon: <GitPR width={28} />,
@@ -38,6 +66,7 @@ export default function DashBoard() {
 
   return (
     <>
+      {isLoading ? <p>Loading....</p> : <p>Done</p>}
       {" "}
       <main className="max-w-screen-xl mx-auto py-8 px-4">
         <div className="mb-8">

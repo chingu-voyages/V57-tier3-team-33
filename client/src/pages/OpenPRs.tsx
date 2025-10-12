@@ -166,21 +166,21 @@ const OpenPRs: React.FC = () => {
                 className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
               >
                 {/* details */}
-                <a href={PR?.pullRequests?.[0].url}>
+                <a href={PR?.url}>
                   <div className="flex flex-col gap-2 cursor-pointer">
                     <div className="flex gap-2 font-semibold">
                       {/* checking for merged for icon */}
                       <GitPR className="w-5 h-5" fill="#28a745"/>
                       <div className="text-gray-600">{PR?.repo}</div>
-                      <div>{PR?.pullRequests?.[0].title}</div>
+                      <div>{PR?.title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.pullRequests?.[0].number} opened{" "}
+                      #{PR?.number} opened{" "}
                       {formatDistanceToNow(
-                        new Date(PR?.pullRequests?.[0].created_at),
+                        new Date(PR?.created_at),
                         { addSuffix: true }
                       )}{" "}
-                      by {PR?.pullRequests?.[0].author?.username}
+                      by {PR?.author?.username}
                     </div>
                   </div>
                 </a>

@@ -43,7 +43,7 @@ const ClosedPRs: React.FC = () => {
     return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
   };
 
-  console.log("pages",data)
+  console.log("pages", data);
 
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
@@ -177,22 +177,32 @@ const ClosedPRs: React.FC = () => {
                 className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
               >
                 {/* details */}
-                <a href={PR?.pullRequests?.[0].url}>
+                <a href={PR?.url}>
                   <div className="flex flex-col gap-2 cursor-pointer">
                     <div className="flex gap-2 font-semibold">
                       {/* checking for merged for icon */}
-                      {PR?.pullRequests?.[0].merged_at ? (
+                      {PR?.merged_at ? (
                         <MergedPR className="w-5 h-5 text-purple-700" />
                       ) : (
                         <ClosedPR className="w-5 h-5 text-red-700" />
                       )}
                       <div className="text-gray-600">{PR?.repo}</div>
-                      <div>{PR?.pullRequests?.[0].title}</div>
+                      <div>{PR?.title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.pullRequests?.[0].number} by
-                      {PR?.pullRequests?.[0].author?.username} was merged at{" "}
-                      {formatDate(PR?.pullRequests?.[0].closed_at)}
+                      #{PR?.number} by
+                      {PR?.author?.username} was merged
+                      {PR?.merged_at ? (
+                        <span>
+                          merged at{" "}
+                          {formatDate(PR?.merged_at)}
+                        </span>
+                      ) : (
+                        <span>
+                          closed at{" "}
+                          {formatDate(PR?.closed_at)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </a>

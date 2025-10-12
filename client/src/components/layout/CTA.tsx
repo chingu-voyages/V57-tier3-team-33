@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Github } from "../icons";
 
 const CTA = () => {
@@ -13,12 +12,10 @@ const CTA = () => {
             <h2 className="text-white lg:text-6xl md:text-5xl text-4xl pt-4 pb-10 font-semibold">
               Connect your GitHub repository
             </h2>
-            <Link to="/auth">
-              <button className="flex bg-black rounded-full py-3 px-5 gap-2 cursor-pointer hover:bg-gray-800">
-                <Github />
-                <div className="text-white ">Connect repository</div>
-              </button>
-            </Link>
+            <button className="flex bg-black rounded-full py-3 px-5 gap-2 cursor-pointer hover:bg-gray-800">
+              <Github />
+              <div className="text-white ">Connect repository</div>
+            </button>
           </div>
         </div>
       </div>

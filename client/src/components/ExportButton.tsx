@@ -15,7 +15,7 @@ export default function ExportButton<T>({
       const validData = ensureJson(data);
 
       if (!validData) {
-        alert("⚠️ Data is not valid JSON.");
+        alert("Data is not valid JSON.");
         return;
       }
 

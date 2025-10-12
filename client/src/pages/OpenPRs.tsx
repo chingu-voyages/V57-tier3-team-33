@@ -166,7 +166,7 @@ const OpenPRs: React.FC = () => {
                 className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
               >
                 {/* details */}
-                <a href={PR?.url}>
+                <a href={PR?.url} target="_blank" rel="noopener noreferrer">
                   <div className="flex flex-col gap-2 cursor-pointer">
                     <div className="flex gap-2 font-semibold">
                       {/* checking for merged for icon */}

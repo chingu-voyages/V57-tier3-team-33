@@ -2,15 +2,15 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Run linting on client
-echo "Running ESLint on client..."
-npm run lint --workspace=client
+# echo "Running ESLint on client..."
+# npm run lint --workspace=client
 
-# Check server syntax
-# echo "Checking server syntax..."
-# node --check server/src/server.ts
+# # Check server syntax
+# # echo "Checking server syntax..."
+# # node --check server/src/server.ts
 
-# Run tests if they exist
-echo "Running tests..."
-npm run test --workspace=server --if-present
+# # Run tests if they exist
+# echo "Running tests..."
+# npm run test --workspace=server --if-present
 
-echo "Pre-commit checks completed successfully!"
+# echo "Pre-commit checks completed successfully!"

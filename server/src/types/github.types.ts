@@ -1,4 +1,4 @@
-import { FailedOperation, FormattedPullRequest, FormattedRepo, FormattedReview, RepoWithPRs, RepoWithReviewsAndErrors } from "./formatted.types";
+import { FailedOperation, FormattedPullRequest, FormattedRepo, FormattedReview, RepoWithReviewsAndErrors } from "./formatted.types";
 
 // GitHub API types
 
@@ -121,7 +121,7 @@ export interface GitHubReview {
 // Final Response Format
 export interface PullRequestResponseFormat {
     success: boolean;
-    data: RepoWithPRs[];
+    data: FormattedPullRequest[];
     pagination: Pagination;
     filters: Filters;
     sort: Sort

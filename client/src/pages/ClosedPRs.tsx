@@ -1,19 +1,121 @@
-import React, { useState } from "react"; // Import useState
-import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
+import React, { useState, useEffect, useMemo } from "react"; // Import useState
+import { Filter, GitPR, Refresh, X } from "../components/icons";
+import ExportButton from "../components/ExportButton";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
+import { useFetch } from "../hooks/useFetch";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../config/firebase";
+import ClosedPR from "../components/icons/closedPR";
+import MergedPR from "../components/icons/mergedPR";
+import { format, isToday, isYesterday } from "date-fns";
+import type { PRResponseEnvelope } from "../types/pr";
 
 const ClosedPRs: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true); // State for loading
-  const [prs, setPrs] = useState([]); // State for PRs data
+  // Fetching prs from the backend
+  const { user } = useAuth();
+  const username = user?.username;
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string>("updated"); // 'newest' | 'oldest' | 'comments' | 'updated'
+  const [page, setPage] = useState<number>(1);
+  const perPage = 10;
 
-  // Simulate data fetching
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //     // setPrs([...some data...]); // Uncomment and add data to test empty state
-  //   }, 2000);
-  // }, []);
+  //  Getting Firebase token
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await auth.currentUser?.getIdToken();
+      setToken(token || undefined);
+    };
+    fetchToken();
+  }, []);
+
+  // Calling custom hook when token + username exist
+  const { data, isLoading, isFetching, error, refetch } = useFetch<PRResponseEnvelope>(
+    ["closedPRs", username, page, perPage],
+    username
+      ? `${
+          import.meta.env.VITE_API_URL
+        }/api/prs/${username}?state=closed&per_page=${perPage}&page=${page}`
+      : "",
+    {},
+    undefined,
+    token
+  );
+
+
+  const prs = useMemo(() => {
+    const groups = data?.data ?? [];
+    return groups.flatMap((g: any) =>
+      (g?.pullRequests || []).map((pr: any) => ({
+        ...pr,
+        repo: pr?.repo ?? g?.repo,
+      }))
+    );
+  }, [data]);
+
+  // Helpers for safe date parsing
+  const safeTime = (d?: string | null): number => {
+    if (!d) return 0;
+    const n = new Date(d).getTime();
+    return isNaN(n) ? 0 : n;
+  };
+
+  const closedTime = (pr: any): number => {
+    // Prefer merged_at, then closed_at, then updated_at, finally created_at
+    return (
+      safeTime(pr?.merged_at) ||
+      safeTime(pr?.closed_at) ||
+      safeTime(pr?.updated_at) ||
+      safeTime(pr?.created_at)
+    );
+  };
+
+  // Sorted list based on UI selection
+  const sortedPRs = useMemo(() => {
+    const list = [...prs];
+    switch (sortBy) {
+      case "newest":
+        return list.sort((a, b) => closedTime(b) - closedTime(a));
+      case "oldest":
+        return list.sort((a, b) => closedTime(a) - closedTime(b));
+      case "comments": {
+        // If comments count is not available, fallback to updated_at descending
+        const getComments = (p: any) =>
+          typeof p?.comments === "number" ? p.comments : 0;
+        return list.sort((a, b) => {
+          const c = getComments(b) - getComments(a);
+          return c !== 0
+            ? c
+            : safeTime(b?.updated_at) - safeTime(a?.updated_at);
+        });
+      }
+      case "updated":
+      default:
+        return list.sort(
+          (a, b) => safeTime(b?.updated_at) - safeTime(a?.updated_at)
+        );
+    }
+  }, [prs, sortBy]);
+
+  const totalCount = data?.pagination?.total_records ?? sortedPRs.length;
+  const totalPages = Math.max(
+    1,
+    data?.pagination?.total_pages ?? Math.ceil(totalCount / perPage)
+  );
+
+  // perPage fixed at 10
+
+  // formatting date with guards for null/invalid values
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return "Unknown";
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "Unknown";
+    if (isToday(date)) return "Today";
+    if (isYesterday(date)) return "Yesterday";
+    return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
+  };
+
+  console.log("pages", data);
 
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
@@ -21,30 +123,33 @@ const ClosedPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            Closed Pull Requests
+            {isLoading ? "Loading" : totalCount} Closed Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all closed pull requests
           </p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
+          <button
+            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+            onClick={() => refetch()}
+            disabled={isLoading || isFetching}
+          >
             <Refresh width={20} fill="#fff" />
-            <span>Refresh</span>
+            <span>{isFetching ? "Refreshing..." : "Refresh"}</span>
           </button>
-          <button className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
-            <Export width={20} fill="#000" />
-            <span>Export JSON</span>
-          </button>
+          <ExportButton
+            data={sortedPRs}
+            filename={`closed-prs-${username || "user"}.json`}
+          />
         </div>
       </section>
 
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          {" "}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           {/* Adjusted grid for inputs + buttons */}
-          <div className="flex flex-col">
+          <div className="flex flex-col ">
             <label
               htmlFor="author"
               className="text-sm font-medium text-gray-700 mb-1"
@@ -57,24 +162,6 @@ const ClosedPRs: React.FC = () => {
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Username"
             />
-          </div>
-          <div className="flex flex-col">
-            <label
-              htmlFor="status"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
-              Filter by Status
-            </label>
-            <select
-              id="status"
-              className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-              defaultValue="closed" // Set default to closed
-            >
-              <option value="">All</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="merged">Merged</option>
-            </select>
           </div>
           <div className="flex flex-col">
             <label
@@ -110,34 +197,113 @@ const ClosedPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              0 Closed Pull Requests
+              {isLoading ? "Loading" : totalCount} Closed Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="sort-by" className="text-sm font-medium text-gray-700">Sort by:</label>
+            <label
+              htmlFor="sort-by"
+              className="text-sm font-medium text-gray-700"
+            >
+              Sort by:
+            </label>
             <select
               id="sort-by"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
               <option value="comments">Most Comments</option>
               <option value="updated">Last Updated</option>
             </select>
+            {/* Per-page fixed at 10; selector removed */}
           </div>
         </div>
         {isLoading ? (
           <div className="flex justify-center items-center py-10">
             <LottieLoader />
           </div>
-        ) : prs.length === 0 ? (
+        ) : error || data === undefined || sortedPRs.length === 0 ? (
           <div className="flex justify-center items-center py-10">
             <LottieEmptyState message="No closed pull requests found." />
           </div>
         ) : (
-          <div className="p-20 text-center text-gray-500">
+          <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
-            List of Closed Pull Requests
+            {sortedPRs.map((PR, index) => (
+              <div
+                key={PR?.id ?? index}
+                className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
+              >
+                {/* details */}
+                <a href={PR?.url} target="_blank" rel="noopener noreferrer">
+                  <div className="flex flex-col gap-2 cursor-pointer">
+                    <div className="flex gap-2 font-semibold">
+                      {/* checking for merged for icon */}
+                      {PR?.merged_at ? (
+                        <MergedPR className="w-5 h-5 text-purple-700" />
+                      ) : (
+                        <ClosedPR className="w-5 h-5 text-red-700" />
+                      )}
+                      <div className="text-gray-600">{PR?.repo}</div>
+                      <div>{PR?.title}</div>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      #{PR?.number} by {PR?.author?.username} was{" "}
+                      {PR?.merged_at ? "merged" : "closed"}{" "}
+                      {PR?.merged_at ? (
+                        <span>{formatDate(PR?.merged_at)}</span>
+                      ) : (
+                        <span>{formatDate(PR?.closed_at)}</span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              </div>
+            ))}
+            <div className="flex items-center justify-between mt-4 text-sm text-gray-700">
+              <div>
+                Showing {(page - 1) * perPage + 1}–
+                {Math.min(page * perPage, totalCount)} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {(() => {
+                  const getPageNumbers = (current: number, total: number) => {
+                    if (total <= 7)
+                      return Array.from({ length: total }, (_, i) => i + 1);
+                    const pages: (number | string)[] = [1];
+                    const start = Math.max(2, current - 2);
+                    const end = Math.min(total - 1, current + 2);
+                    if (start > 2) pages.push("...");
+                    for (let i = start; i <= end; i++) pages.push(i);
+                    if (end < total - 1) pages.push("...");
+                    pages.push(total);
+                    return pages;
+                  };
+                  return getPageNumbers(page, totalPages).map((p, idx) =>
+                    typeof p === "number" ? (
+                      <button
+                        key={p}
+                        className={`border px-3 py-1 rounded ${
+                          p === page
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "border-gray-300 hover:bg-gray-100"
+                        }`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ) : (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-500">
+                        …
+                      </span>
+                    )
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
       </section>

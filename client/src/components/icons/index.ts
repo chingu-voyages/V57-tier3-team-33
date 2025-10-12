@@ -8,5 +8,3 @@ export { default as Symbol } from './symbol';
 export { default as Team } from './team';
 export { default as X } from './x';
 export { default as Docs } from './docs';
-export { default as Logout } from './logout';
-export { default as DashBoardLogo } from './dashboardLogo';

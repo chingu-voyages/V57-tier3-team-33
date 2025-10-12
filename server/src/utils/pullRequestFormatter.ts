@@ -1,4 +1,4 @@
-import { FormattedPullRequest, FormattedRepo } from "../types/formatted.types";
+import { FormattedPullRequest, FormattedRepo, RepoWithPRs } from "../types/formatted.types";
 import {
   PullRequestResponseFormat,
   PRState,
@@ -13,7 +13,7 @@ import {
  * Parameters for formatting pull request response
  */
 export interface FormatPullRequestResponseParams {
-  prs: FormattedPullRequest[];
+  prs: RepoWithPRs[];
   pageNum: number;
   perPage: number;
   prState: PRState;
@@ -33,7 +33,7 @@ export function formatPullRequestResponse(params: FormatPullRequestResponseParam
   // Calculate total PRs across all repositories
   const totalPRs = typeof totalPRsOverride === 'number'
     ? totalPRsOverride
-    : prs.length
+    : prs.reduce((sum, repo) => sum + repo.pullRequests.length, 0);
 
   // Calculate total pages based on total PRs and per_page
   const totalPages = Math.ceil(totalPRs / perPage);

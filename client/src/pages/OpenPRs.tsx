@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react"; // Import useState
-import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
+import React, { useState, useEffect, useMemo } from "react"; // Import useState
+import { Filter, GitPR, Refresh, X } from "../components/icons";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "../config/firebase";
-import { formatDistanceToNow } from "date-fns";
+import PRListItem, { PullRequestItem } from "../components/PRListItem";
+import ExportButton from "../components/ExportButton";
 
 const OpenPRs: React.FC = () => {
   // Fetching prs from the backend
@@ -23,17 +24,69 @@ const OpenPRs: React.FC = () => {
   }, []);
 
   // Calling custom hook when token + username exist
-  const { data, isLoading, error } = useFetch(
+  const { data, isLoading, error, refetch } = useFetch(
     ["openPRs", username],
     username
       ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=open`
       : "",
     {},
-    undefined,
+    { enabled: !!token && !!username, staleTime: 60_000 },
     token
   );
 
-  console.log("open prs", data);
+  // Local UI state: filters and sorting
+  const [authorFilter, setAuthorFilter] = useState<string>("");
+  const [repoFilter, setRepoFilter] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("updated"); // 'newest' | 'oldest' | 'updated'
+
+  // Flatten server response: it returns groups { repo, pullRequests: [...] }
+  const prs: PullRequestItem[] = useMemo(() => {
+    const groups = (data?.data as any[]) || [];
+    return groups.flatMap((g: any) =>
+      (g?.pullRequests || []).map((pr: any) => ({
+        ...pr,
+        // ensure repo is present on each item
+        repo: pr?.repo ?? g?.repo,
+      }))
+    );
+  }, [data]);
+
+  const filteredAndSortedPRs = useMemo(() => {
+    const normalized = prs.filter((pr) => {
+      const matchesAuthor = authorFilter
+        ? (pr.author?.username || "").toLowerCase().includes(authorFilter.toLowerCase())
+        : true;
+      const matchesRepo = repoFilter
+        ? (pr.repo || "").toLowerCase().includes(repoFilter.toLowerCase())
+        : true;
+      return matchesAuthor && matchesRepo;
+    });
+
+    const sorted = [...normalized].sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      // default: updated desc
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+    return sorted;
+  }, [prs, authorFilter, repoFilter, sortBy]);
+
+  const totalCount = filteredAndSortedPRs.length;
+
+  const handleClearFilters = () => {
+    setAuthorFilter("");
+    setRepoFilter("");
+    setSortBy("updated");
+  };
+
+  const handleApply = () => {
+    // Placeholder for future server-side filtering integration
+    refetch();
+  };
 
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
@@ -41,27 +94,30 @@ const OpenPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            {data?.pagination.total_records} Open Pull Requests
+            {isLoading ? "Loading" : totalCount} Open Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all open pull requests
           </p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
+          <button
+            className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+            onClick={() => refetch()}
+          >
             <Refresh width={20} fill="#fff" />
             <span>Refresh</span>
           </button>
-          <button className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
-            <Export width={20} fill="#000" />
-            <span>Export JSON</span>
-          </button>
+          <ExportButton
+            data={filteredAndSortedPRs}
+            filename={`open-prs-${username || "user"}.json`}
+          />
         </div>
       </section>
 
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           {/* Adjusted grid for inputs + buttons */}
           <div className="flex flex-col">
             <label
@@ -75,24 +131,9 @@ const OpenPRs: React.FC = () => {
               id="author"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Username"
+              value={authorFilter}
+              onChange={(e) => setAuthorFilter(e.target.value)}
             />
-          </div>
-          <div className="flex flex-col">
-            <label
-              htmlFor="status"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
-              Filter by Status
-            </label>
-            <select
-              id="status"
-              className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="merged">Merged</option>
-            </select>
           </div>
           <div className="flex flex-col">
             <label
@@ -106,15 +147,23 @@ const OpenPRs: React.FC = () => {
               id="repository"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Repository Name"
+              value={repoFilter}
+              onChange={(e) => setRepoFilter(e.target.value)}
             />
           </div>
           {/* Buttons now part of the same grid */}
           <div className="flex sm:flex-row gap-4 lg:col-span-1 justify-end">
-            <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
+            <button
+              className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+              onClick={handleApply}
+            >
               <Filter fill="#fff" width={20} />
               <span>Apply</span>
             </button>
-            <button className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
+            <button
+              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+              onClick={handleClearFilters}
+            >
               <X fill="#fff" width={20} />
               <span>Clear</span>
             </button>
@@ -141,10 +190,11 @@ const OpenPRs: React.FC = () => {
             <select
               id="sort-by"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
-              <option value="comments">Most Comments</option>
               <option value="updated">Last Updated</option>
             </select>
           </div>
@@ -160,31 +210,8 @@ const OpenPRs: React.FC = () => {
         ) : (
           <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
-            {data?.data?.map((PR, index) => (
-              <div
-                key={index}
-                className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
-              >
-                {/* details */}
-                <a href={PR?.url} target="_blank" rel="noopener noreferrer">
-                  <div className="flex flex-col gap-2 cursor-pointer">
-                    <div className="flex gap-2 font-semibold">
-                      {/* checking for merged for icon */}
-                      <GitPR className="w-5 h-5" fill="#28a745"/>
-                      <div className="text-gray-600">{PR?.repo}</div>
-                      <div>{PR?.title}</div>
-                    </div>
-                    <div className="text-gray-600 text-sm">
-                      #{PR?.number} opened{" "}
-                      {formatDistanceToNow(
-                        new Date(PR?.created_at),
-                        { addSuffix: true }
-                      )}{" "}
-                      by {PR?.author?.username}
-                    </div>
-                  </div>
-                </a>
-              </div>
+            {filteredAndSortedPRs.map((pr) => (
+              <PRListItem key={pr.id ?? pr.number} pr={pr} />
             ))}
           </div>
         )}

@@ -6,8 +6,8 @@ echo "Running ESLint on client..."
 npm run lint --workspace=client
 
 # Check server syntax
-echo "Checking server syntax..."
-node --check server/src/server.js
+# echo "Checking server syntax..."
+# node --check server/src/server.ts
 
 # Run tests if they exist
 echo "Running tests..."

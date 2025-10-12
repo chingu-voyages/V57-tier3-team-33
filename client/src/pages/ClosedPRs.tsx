@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Import useState
+import React, { useState, useEffect, useMemo } from "react"; // Import useState
 import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
@@ -14,6 +14,7 @@ const ClosedPRs: React.FC = () => {
   const { user } = useAuth();
   const username = user?.username;
   const [token, setToken] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string>("updated"); // 'newest' | 'oldest' | 'comments' | 'updated'
 
   //  Getting Firebase token
   useEffect(() => {
@@ -25,7 +26,7 @@ const ClosedPRs: React.FC = () => {
   }, []);
 
   // Calling custom hook when token + username exist
-  const { data, isLoading, error } = useFetch(
+  const { data, isLoading, error, refetch } = useFetch(
     ["closedPRs", username],
     username
       ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=closed`
@@ -35,9 +36,61 @@ const ClosedPRs: React.FC = () => {
     token
   );
 
-  // formatting date
-  const formatDate = (isoString: string) => {
+  // Flatten server response groups { repo, pullRequests: [...] } into a single list
+  const prs = useMemo(() => {
+    const groups = (data?.data as any[]) || [];
+    return groups.flatMap((g: any) =>
+      (g?.pullRequests || []).map((pr: any) => ({
+        ...pr,
+        repo: pr?.repo ?? g?.repo,
+      }))
+    );
+  }, [data]);
+
+  // Helpers for safe date parsing
+  const safeTime = (d?: string | null): number => {
+    if (!d) return 0;
+    const n = new Date(d).getTime();
+    return isNaN(n) ? 0 : n;
+  };
+
+  const closedTime = (pr: any): number => {
+    // Prefer merged_at, then closed_at, then updated_at, finally created_at
+    return (
+      safeTime(pr?.merged_at) ||
+      safeTime(pr?.closed_at) ||
+      safeTime(pr?.updated_at) ||
+      safeTime(pr?.created_at)
+    );
+  };
+
+  // Sorted list based on UI selection
+  const sortedPRs = useMemo(() => {
+    const list = [...prs];
+    switch (sortBy) {
+      case "newest":
+        return list.sort((a, b) => closedTime(b) - closedTime(a));
+      case "oldest":
+        return list.sort((a, b) => closedTime(a) - closedTime(b));
+      case "comments": {
+        // If comments count is not available, fallback to updated_at descending
+        const getComments = (p: any) => (typeof p?.comments === "number" ? p.comments : 0);
+        return list.sort((a, b) => {
+          const c = getComments(b) - getComments(a);
+          return c !== 0 ? c : safeTime(b?.updated_at) - safeTime(a?.updated_at);
+        });
+      }
+      case "updated":
+      default:
+        return list.sort((a, b) => safeTime(b?.updated_at) - safeTime(a?.updated_at));
+    }
+  }, [prs, sortBy]);
+
+  // formatting date with guards for null/invalid values
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return "Unknown";
     const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "Unknown";
     if (isToday(date)) return "Today";
     if (isYesterday(date)) return "Yesterday";
     return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
@@ -58,7 +111,7 @@ const ClosedPRs: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200">
+          <button className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200" onClick={() => refetch()}>
             <Refresh width={20} fill="#fff" />
             <span>Refresh</span>
           </button>
@@ -71,7 +124,7 @@ const ClosedPRs: React.FC = () => {
 
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           {/* Adjusted grid for inputs + buttons */}
           <div className="flex flex-col ">
             <label
@@ -86,24 +139,6 @@ const ClosedPRs: React.FC = () => {
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Username"
             />
-          </div>
-          <div className="flex flex-col">
-            <label
-              htmlFor="status"
-              className="text-sm font-medium text-gray-700 mb-1"
-            >
-              Filter by Status
-            </label>
-            <select
-              id="status"
-              className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-              defaultValue="closed" // Set default to closed
-            >
-              <option value="">All</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="merged">Merged</option>
-            </select>
           </div>
           <div className="flex flex-col">
             <label
@@ -152,6 +187,8 @@ const ClosedPRs: React.FC = () => {
             <select
               id="sort-by"
               className="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
@@ -164,16 +201,16 @@ const ClosedPRs: React.FC = () => {
           <div className="flex justify-center items-center py-10">
             <LottieLoader />
           </div>
-        ) : error || data === undefined || data?.data?.length === 0 ? (
+        ) : error || data === undefined || sortedPRs.length === 0 ? (
           <div className="flex justify-center items-center py-10">
             <LottieEmptyState message="No closed pull requests found." />
           </div>
         ) : (
           <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
-            {data?.data?.map((PR, index) => (
+            {sortedPRs.map((PR, index) => (
               <div
-                key={index}
+                key={PR?.id ?? index}
                 className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
               >
                 {/* details */}
@@ -190,18 +227,11 @@ const ClosedPRs: React.FC = () => {
                       <div>{PR?.title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.number} by
-                      {PR?.author?.username} was merged
+                      #{PR?.number} by {PR?.author?.username} was {PR?.merged_at ? "merged" : "closed"} {" "}
                       {PR?.merged_at ? (
-                        <span>
-                          merged at{" "}
-                          {formatDate(PR?.merged_at)}
-                        </span>
+                        <span>{formatDate(PR?.merged_at)}</span>
                       ) : (
-                        <span>
-                          closed at{" "}
-                          {formatDate(PR?.closed_at)}
-                        </span>
+                        <span>{formatDate(PR?.closed_at)}</span>
                       )}
                     </div>
                   </div>

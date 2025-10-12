@@ -1,7 +1,7 @@
 # PullBoard - Chingu Voyage 57, T33
 
 <p align="center" />
-<img width="800" alt="PullBoard hero" src="" />
+<img width="800" alt="PullBoard hero" src="./client/public/PullBoard hero.png" />
  </p>
 
  <p align="center">

@@ -1,15 +1,15 @@
 import { ensureJson } from "../utils/validateJson";
 import { Export } from "./icons";
 
-interface ExportButtonProps<T = unknown> {
-  data: T;
+interface ExportButtonProps {
+  data: unknown;
   filename: string;
 }
 
-export default function ExportButton<T>({
+export default function ExportButton({
   data,
   filename,
-}: ExportButtonProps<T>) {
+}: ExportButtonProps) {
   const handleExport = (): void => {
     try {
       const validData = ensureJson(data);

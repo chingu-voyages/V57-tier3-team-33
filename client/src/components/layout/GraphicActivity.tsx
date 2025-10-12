@@ -33,22 +33,22 @@ export default function GraphicActivit({ allprs }: { allprs: PullRequest[] }) {
     };
 
     allprs.forEach((pr) => {
-      const createdMonth = SHORT_MONTHS[new Date(pr.created_at).getMonth()];
+      const createdMonth = new Date(pr.created_at).getMonth();
       activity.created[createdMonth] = (activity.created[createdMonth] || 0) + 1;
 
       if (pr.merged_at) {
-        const mergedMonth = SHORT_MONTHS[new Date(pr.merged_at).getMonth()];
+        const mergedMonth = new Date(pr.merged_at).getMonth();
         activity.merged[mergedMonth] = (activity.merged[mergedMonth] || 0) + 1;
       }
     });
-    console.log(activity.created)
+    
     const months = new Set([
       ...Object.keys(activity.created),
       ...Object.keys(activity.merged),
     ]);
 
     const prActivityData = Array.from(months).sort().map((month) => ({
-      name: month,
+      name: SHORT_MONTHS[parseInt(month)],
       "PRs Created": activity.created[month] || 0,
       "PRs Merged": activity.merged[month] || 0
     }));

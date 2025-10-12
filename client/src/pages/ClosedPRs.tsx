@@ -9,9 +9,7 @@ import ClosedPR from "../components/icons/closedPR";
 import MergedPR from "../components/icons/mergedPR";
 import { format, isToday, isYesterday } from "date-fns";
 
-
 const ClosedPRs: React.FC = () => {
-
   // Fetching prs from the backend
   const { user } = useAuth();
   const username = user?.username;
@@ -28,8 +26,10 @@ const ClosedPRs: React.FC = () => {
 
   // Calling custom hook when token + username exist
   const { data, isLoading, error } = useFetch(
-    ["openPRs", username],
-    username ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=closed` : "",
+    ["closedPRs", username],
+    username
+      ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=closed`
+      : "",
     {},
     undefined,
     token
@@ -43,13 +43,15 @@ const ClosedPRs: React.FC = () => {
     return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
   };
 
+  console.log("pages",data)
+
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
       {/* Page Header */}
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-          {data?.data?.length}  Closed Pull Requests
+            {data?.pagination.total_records} Closed Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all closed pull requests
@@ -137,7 +139,7 @@ const ClosedPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              {data?.data?.length} Closed Pull Requests
+              {data?.pagination.total_records} Closed Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -170,7 +172,10 @@ const ClosedPRs: React.FC = () => {
           <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
             {data?.data?.map((PR, index) => (
-              <div key={index} className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100">
+              <div
+                key={index}
+                className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
+              >
                 {/* details */}
                 <a href={PR?.pullRequests?.[0].url}>
                   <div className="flex flex-col gap-2 cursor-pointer">
@@ -179,14 +184,14 @@ const ClosedPRs: React.FC = () => {
                       {PR?.pullRequests?.[0].merged_at ? (
                         <MergedPR className="w-5 h-5 text-purple-700" />
                       ) : (
-                        <ClosedPR className="w-5 h-5 text-green-700" />
+                        <ClosedPR className="w-5 h-5 text-red-700" />
                       )}
                       <div className="text-gray-600">{PR?.repo}</div>
                       <div>{PR?.pullRequests?.[0].title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
                       #{PR?.pullRequests?.[0].number} by
-                      {PR?.pullRequests?.[0].author?.username} was merged at
+                      {PR?.pullRequests?.[0].author?.username} was merged at{" "}
                       {formatDate(PR?.pullRequests?.[0].closed_at)}
                     </div>
                   </div>

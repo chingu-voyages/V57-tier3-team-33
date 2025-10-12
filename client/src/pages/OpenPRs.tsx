@@ -5,9 +5,6 @@ import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import Lott
 import { useFetch } from "../hooks/useFetch";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "../config/firebase";
-import ClosedPR from "../components/icons/closedPR";
-import MergedPR from "../components/icons/mergedPR";
-// import { format, isToday, isYesterday } from "date-fns";
 import { formatDistanceToNow } from "date-fns";
 
 const OpenPRs: React.FC = () => {
@@ -36,14 +33,6 @@ const OpenPRs: React.FC = () => {
     token
   );
 
-  // formatting date
-  // const formatDate = (isoString: string) => {
-  //   const date = new Date(isoString);
-  //   if (isToday(date)) return "Today";
-  //   if (isYesterday(date)) return "Yesterday";
-  //   return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
-  // };
-
   console.log("open prs", data);
 
   return (
@@ -52,7 +41,7 @@ const OpenPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            {data?.data?.length} Open Pull Requests
+            {data?.pagination.total_records} Open Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all open pull requests
@@ -139,7 +128,7 @@ const OpenPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              {data?.data?.length} Open Pull Requests
+              {data?.pagination.total_records} Open Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -186,7 +175,7 @@ const OpenPRs: React.FC = () => {
                       <div>{PR?.pullRequests?.[0].title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.pullRequests?.[0].number} opened opened{" "}
+                      #{PR?.pullRequests?.[0].number} opened{" "}
                       {formatDistanceToNow(
                         new Date(PR?.pullRequests?.[0].created_at),
                         { addSuffix: true }

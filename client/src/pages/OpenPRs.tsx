@@ -1,19 +1,39 @@
-import React, { useState } from "react"; // Import useState
+import React, { useState, useEffect } from "react"; // Import useState
 import { Export, Filter, GitPR, Refresh, X } from "../components/icons";
 import LottieLoader from "../components/ui/LottieLoader"; // Import LottieLoader
 import LottieEmptyState from "../components/ui/LottieEmptyState"; // Import LottieEmptyState
+import { useFetch } from "../hooks/useFetch";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../config/firebase";
+import { formatDistanceToNow } from "date-fns";
 
 const OpenPRs: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true); // State for loading
-  const [prs, setPrs] = useState([]); // State for PRs data
+  // Fetching prs from the backend
+  const { user } = useAuth();
+  const username = user?.username;
+  const [token, setToken] = useState<string | undefined>(undefined);
 
-  // Simulate data fetching
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //     // setPrs([...some data...]); // Uncomment and add data to test empty state
-  //   }, 2000);
-  // }, []);
+  //  Getting Firebase token
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await auth.currentUser?.getIdToken();
+      setToken(token || undefined);
+    };
+    fetchToken();
+  }, []);
+
+  // Calling custom hook when token + username exist
+  const { data, isLoading, error } = useFetch(
+    ["openPRs", username],
+    username
+      ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=open`
+      : "",
+    {},
+    undefined,
+    token
+  );
+
+  console.log("open prs", data);
 
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
@@ -21,7 +41,7 @@ const OpenPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            Open Pull Requests
+            {data?.pagination.total_records} Open Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all open pull requests
@@ -42,7 +62,6 @@ const OpenPRs: React.FC = () => {
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          {" "}
           {/* Adjusted grid for inputs + buttons */}
           <div className="flex flex-col">
             <label
@@ -109,7 +128,7 @@ const OpenPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              0 Open Pull Requests
+              {data?.pagination.total_records} Open Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -134,14 +153,39 @@ const OpenPRs: React.FC = () => {
           <div className="flex justify-center items-center py-10">
             <LottieLoader />
           </div>
-        ) : prs.length === 0 ? (
+        ) : error || !data || data?.data?.length === 0 ? (
           <div className="flex justify-center items-center py-10">
             <LottieEmptyState message="No open pull requests found." />
           </div>
         ) : (
-          <div className="p-20 text-center text-gray-500">
+          <div className="flex flex-col rounded-md overflow-hidden p-4 border-gray-400">
             {/* Render your PRs list here */}
-            List of Open Pull Requests
+            {data?.data?.map((PR, index) => (
+              <div
+                key={index}
+                className="p-4 border-[0.5px] border-gray-300 hover:bg-gray-100"
+              >
+                {/* details */}
+                <a href={PR?.url} target="_blank" rel="noopener noreferrer">
+                  <div className="flex flex-col gap-2 cursor-pointer">
+                    <div className="flex gap-2 font-semibold">
+                      {/* checking for merged for icon */}
+                      <GitPR className="w-5 h-5" fill="#28a745"/>
+                      <div className="text-gray-600">{PR?.repo}</div>
+                      <div>{PR?.title}</div>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      #{PR?.number} opened{" "}
+                      {formatDistanceToNow(
+                        new Date(PR?.created_at),
+                        { addSuffix: true }
+                      )}{" "}
+                      by {PR?.author?.username}
+                    </div>
+                  </div>
+                </a>
+              </div>
+            ))}
           </div>
         )}
       </section>

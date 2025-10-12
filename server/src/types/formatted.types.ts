@@ -60,6 +60,11 @@ export interface RepoWithReviewsAndErrors {
     failure_count: number;
 }
 
+export interface RepoWithPRs {
+    repo: string;
+    pullRequests: FormattedPullRequest[];
+}
+
 export interface FailedOperation {
     type: 'pull_request' | 'repository' | 'user';
     identifier: string;

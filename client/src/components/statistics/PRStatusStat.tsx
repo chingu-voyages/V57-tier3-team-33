@@ -17,7 +17,7 @@ const PRStatusStat: React.FC<Props> = ({ allprs = [] }) => {
 
         const avgMergeTime = mergedPRs
             .map((pr) => !!pr.merged_at ? new Date(pr.merged_at).getTime() - new Date(pr.created_at).getTime() : 0)
-            .reduce((a, b) => a + b)
+            .reduce((a, b) => a + b, 0)
             / merged;
 
         const map: Record<string, boolean> = {};

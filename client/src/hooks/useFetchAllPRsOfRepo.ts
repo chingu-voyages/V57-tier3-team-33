@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/axios";
 
-export function useFetchAllPRsOfRepo<TData = unknown>(url: string, token?: string) {
+export function useFetchAllPRsOfRepo<TData = unknown>(url: string | null, token?: string) {
     return useQuery({
         queryKey: ["all-prs", url],
         queryFn: async () => {
@@ -20,12 +20,12 @@ export function useFetchAllPRsOfRepo<TData = unknown>(url: string, token?: strin
 
             return {
                 data: [
-                ...first.data.data,
-                ...pages.flatMap((r) => r.data.data ?? []),
-            ],
-        };
+                    ...first.data.data,
+                    ...pages.flatMap((r) => r.data.data ?? []),
+                ],
+            };
         },
-        enabled: !!token,
+        enabled: !!token && !!url,
         staleTime: 1000 * 60 * 10,
     });
 }

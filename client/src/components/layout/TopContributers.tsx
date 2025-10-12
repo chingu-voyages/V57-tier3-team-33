@@ -1,3 +1,6 @@
+import { useMemo } from "react";
+import { PullRequest } from "../../types/PullRequest.types";
+import { all } from "axios";
 
 interface Contributor {
   name: string;
@@ -6,7 +9,11 @@ interface Contributor {
   successRate: string;
 }
 
-export default function TopContributers() {
+interface ContributorMap {
+  username: { prsCreated: number, prsMerged: number, successRate: number }
+}
+
+export default function TopContributers({ allprs }: { allprs: PullRequest[] }) {
   const contributors: Contributor[] = [
     { name: "John Doe", prsCreated: 15, prsMerged: 12, successRate: "80%" },
     { name: "Jane Smith", prsCreated: 10, prsMerged: 9, successRate: "90%" },
@@ -14,6 +21,17 @@ export default function TopContributers() {
     { name: "Alice Brown", prsCreated: 8, prsMerged: 8, successRate: "100%" },
   ];
 
+  const stats = useMemo(() => {
+    const map: Record<string, Contributor> = {}
+    allprs.forEach((pr) => {
+      map[pr.author.username].name = pr.author.username;
+      map[pr.author.username].prsCreated = (map[pr.author.username].prsCreated || 0) + 1;
+      if (pr.merged_at) {
+        map[pr.author.username].prsMerged = (map[pr.author.username].prsMerged || 0) + 1;
+      }
+    })
+
+  }, [allprs])
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
       <h3 className="text-3xl font-bold text-gray-800 mb-6">Top Contributors</h3>

@@ -18,8 +18,6 @@ export default function DashBoard() {
     }
   }, [isLoading])
 
-
-
   return (
     <>
       {" "}
@@ -37,7 +35,7 @@ export default function DashBoard() {
       {!isLoading && data &&
         <>
           <GraphicActivity allprs={data.data} />
-          <TopContributers />
+          <TopContributers allprs={data.data}/>
         </>
       }
     </>

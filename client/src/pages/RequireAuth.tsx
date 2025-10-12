@@ -2,10 +2,10 @@ import { useAuth } from '../context/AuthContext'
 import { Navigate, Outlet } from 'react-router-dom';
 
 const RequireAuth = () => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
 
     return (
-        user ? <Outlet /> : <Navigate to="/auth" />
+        loading ? null : (user ? <Outlet /> : <Navigate to="/auth" replace />)
     )
 }
 

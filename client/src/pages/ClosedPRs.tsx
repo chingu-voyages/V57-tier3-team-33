@@ -11,6 +11,8 @@ import { format, isToday, isYesterday } from "date-fns";
 
 
 const ClosedPRs: React.FC = () => {
+  // const [isLoading, setIsLoading] = useState(true); // State for loading
+  // const [prs, setPrs] = useState([]); // State for PRs data
 
   // Fetching prs from the backend
   const { user } = useAuth();
@@ -29,7 +31,7 @@ const ClosedPRs: React.FC = () => {
   // Calling custom hook when token + username exist
   const { data, isLoading, error } = useFetch(
     ["openPRs", username],
-    username ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=closed` : "",
+    username ? `http://localhost:3200/api/prs/${username}?state=closed` : "",
     {},
     undefined,
     token
@@ -43,14 +45,13 @@ const ClosedPRs: React.FC = () => {
     return format(date, "MMM d, yyyy"); // e.g., "Dec 8, 2025"
   };
 
-
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
       {/* Page Header */}
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-          {data?.data?.length}  Closed Pull Requests
+            Closed Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all closed pull requests
@@ -71,6 +72,7 @@ const ClosedPRs: React.FC = () => {
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          {" "}
           {/* Adjusted grid for inputs + buttons */}
           <div className="flex flex-col ">
             <label

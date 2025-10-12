@@ -185,8 +185,8 @@ const ClosedPRs: React.FC = () => {
                       <div>{PR?.pullRequests?.[0].title}</div>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      #{PR?.pullRequests?.[0].number} by{" "}
-                      {PR?.pullRequests?.[0].author?.username} was merged at{" "}
+                      #{PR?.pullRequests?.[0].number} by
+                      {PR?.pullRequests?.[0].author?.username} was merged at
                       {formatDate(PR?.pullRequests?.[0].closed_at)}
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -11,6 +12,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { PullRequest } from "../../types/PullRequest.types";
 
 // Sample Data for PR Activity (Bar Chart)
 const prActivityData = [
@@ -23,17 +25,24 @@ const prActivityData = [
   { name: "Jul", "PRs Created": 34, "PRs Merged": 43 },
 ];
 
-// Sample Data for PR Status (Pie Chart)
-const prStatusData = [
-  { name: "Open", value: 400 },
-  { name: "Closed", value: 300 },
-  { name: "Merged", value: 300 },
-  { name: "Draft", value: 200 },
-];
-
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]; // Colors for Pie Chart segments
 
-export default function GraphicActivity() {
+export default function GraphicActivit({ allprs }: { allprs: PullRequest[] }) {
+
+  const prStats = useMemo(() => {
+    const openPRs = allprs.filter((pr) => pr.state === "open").length;
+    const mergedPRs = allprs.filter((pr) => pr.state === "closed" && !!pr.merged_at).length;
+    const closedPRs = allprs.length - openPRs - mergedPRs;
+
+    const prStatusData = [
+      { name: "Open", value: openPRs },
+      { name: "Closed", value: closedPRs },
+      { name: "Merged", value: mergedPRs },
+    ]
+
+    return { prStatusData }
+  }, [allprs]);
+
   return (
     <main className="max-w-screen-xl mx-auto py-8 px-4">
       <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
@@ -70,7 +79,7 @@ export default function GraphicActivity() {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={prStatusData}
+                data={prStats.prStatusData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -78,7 +87,7 @@ export default function GraphicActivity() {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {prStatusData.map((_entry, index) => (
+                {prStats.prStatusData.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}

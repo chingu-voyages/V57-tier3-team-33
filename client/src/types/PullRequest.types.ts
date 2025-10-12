@@ -3,7 +3,7 @@ export interface PullRequest {
     repo: string;
     number: number;
     title: string;
-    author: User | null;
+    author: User;
     url: string;
     state: 'open' | 'closed' | 'all';
     created_at: string;

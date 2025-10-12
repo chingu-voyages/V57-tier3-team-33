@@ -27,10 +27,14 @@ const OpenPRs: React.FC = () => {
     fetchToken();
   }, []);
 
+  // const API_URL = import.meta.env.DEV 
+  // ? "http://localhost:3200" 
+  // : "https://my-production-api.com";
+
   // Calling custom hook when token + username exist
   const { data, isLoading, error } = useFetch(
     ["openPRs", username],
-    username ? `http://localhost:3200/api/prs/${username}` : "",
+    username ? `${import.meta.env.VITE_API_URL}/api/prs/${username}?state=open` : "",
     {},
     undefined,
     token
@@ -50,7 +54,7 @@ const OpenPRs: React.FC = () => {
       <section className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div className="text-center md:text-left mb-4 md:mb-0">
           <h2 className="text-3xl font-bold text-gray-800">
-            Open Pull Requests
+           {data?.data?.length} Open Pull Requests
           </h2>
           <p className="text-gray-600">
             Track and manage all open pull requests
@@ -71,7 +75,6 @@ const OpenPRs: React.FC = () => {
       {/* Filter Section */}
       <section className="bg-white p-6 rounded-lg shadow-sm mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          {" "}
           {/* Adjusted grid for inputs + buttons */}
           <div className="flex flex-col">
             <label
@@ -138,7 +141,7 @@ const OpenPRs: React.FC = () => {
           <div className="flex items-center gap-2">
             <GitPR fill="#28a745" width={20} />
             <span className="text-lg font-semibold text-gray-800">
-              0 Open Pull Requests
+              {data?.data?.length} Open Pull Requests
             </span>
           </div>
           <div className="flex items-center gap-2">

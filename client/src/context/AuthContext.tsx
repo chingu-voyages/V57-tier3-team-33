@@ -26,10 +26,11 @@ export function useAuth() {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        setLoading(true);
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
             setUser(JSON.parse(storedUser))
@@ -38,8 +39,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
                 setUser(null)
+                localStorage.removeItem("user");
             }
         })
+        setLoading(false);
         return unsubscribe;
     }, []);
 

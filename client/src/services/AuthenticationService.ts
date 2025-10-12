@@ -1,6 +1,6 @@
 import { api } from "../lib/axios";
 
-const baseUrl = import.meta.env.VITE_API_URL;
+const baseUrl = import.meta.env.VITE_API_URL ;
 export async function signIn(idToken: string, githubAccessToken: string) {
   const response = await api.request({
     url: `${baseUrl}/api/login`,

@@ -14,22 +14,46 @@ import {
 } from "recharts";
 import { PullRequest } from "../../types/PullRequest.types";
 
-// Sample Data for PR Activity (Bar Chart)
-const prActivityData = [
-  { name: "Jan", "PRs Created": 40, "PRs Merged": 24 },
-  { name: "Feb", "PRs Created": 30, "PRs Merged": 13 },
-  { name: "Mar", "PRs Created": 20, "PRs Merged": 98 },
-  { name: "Apr", "PRs Created": 27, "PRs Merged": 39 },
-  { name: "May", "PRs Created": 18, "PRs Merged": 48 },
-  { name: "Jun", "PRs Created": 23, "PRs Merged": 38 },
-  { name: "Jul", "PRs Created": 34, "PRs Merged": 43 },
-];
-
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]; // Colors for Pie Chart segments
+const SHORT_MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+interface MonthlyStats {
+  created: Record<string, number>;
+  merged: Record<string, number>;
+}
 
 export default function GraphicActivit({ allprs }: { allprs: PullRequest[] }) {
 
   const prStats = useMemo(() => {
+
+    // Nmbuer of opened and merged PR by month
+    const activity: MonthlyStats = {
+      created: {},
+      merged: {}
+    };
+
+    allprs.forEach((pr) => {
+      const createdMonth = SHORT_MONTHS[new Date(pr.created_at).getMonth()];
+      activity.created[createdMonth] = (activity.created[createdMonth] || 0) + 1;
+
+      if (pr.merged_at) {
+        const mergedMonth = SHORT_MONTHS[new Date(pr.merged_at).getMonth()];
+        activity.merged[mergedMonth] = (activity.merged[mergedMonth] || 0) + 1;
+      }
+    });
+    console.log(activity.created)
+    const months = new Set([
+      ...Object.keys(activity.created),
+      ...Object.keys(activity.merged),
+    ]);
+
+    const prActivityData = Array.from(months).sort().map((month) => ({
+      name: month,
+      "PRs Created": activity.created[month] || 0,
+      "PRs Merged": activity.merged[month] || 0
+    }));
+
+    // PR count by state
     const openPRs = allprs.filter((pr) => pr.state === "open").length;
     const mergedPRs = allprs.filter((pr) => pr.state === "closed" && !!pr.merged_at).length;
     const closedPRs = allprs.length - openPRs - mergedPRs;
@@ -40,7 +64,7 @@ export default function GraphicActivit({ allprs }: { allprs: PullRequest[] }) {
       { name: "Merged", value: mergedPRs },
     ]
 
-    return { prStatusData }
+    return { prStatusData, prActivityData }
   }, [allprs]);
 
   return (
@@ -57,7 +81,7 @@ export default function GraphicActivit({ allprs }: { allprs: PullRequest[] }) {
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
-              data={prActivityData}
+              data={prStats.prActivityData}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />

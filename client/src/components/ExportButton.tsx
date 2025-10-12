@@ -1,12 +1,14 @@
-import { ensureJson } from "../utils/validateJson";
-import { Export } from "./icons";
+import React from "react";
+import ExportIcon from "./icons/export";
 
-interface ExportButtonProps<T = unknown> {
-  data: T;
-  filename: string;
-}
+type ExportButtonProps<T = unknown> = {
+  data: T[] | undefined;
+  filename?: string;
+  className?: string;
+  disabled?: boolean;
+};
 
-export default function ExportButton<T>({
+const ExportButton = <T,>({
   data,
   filename,
 }: ExportButtonProps<T>) {
@@ -19,29 +21,35 @@ export default function ExportButton<T>({
         return;
       }
 
-      const json = JSON.stringify(validData, null, 2);
+  const handleExport = () => {
+    try {
+      const payload = Array.isArray(data) ? data : [];
+      const json = JSON.stringify(payload, null, 2);
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.click();
-
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("❌ Export error:", error);
-      alert("An error occurred during export.");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (e) {
+      console.error("Export failed", e);
     }
   };
 
   return (
     <button
+      type="button"
       onClick={handleExport}
-      className="bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
+      disabled={disabled || isEmpty}
+      className={`bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200 ${className}`}
     >
-      <Export width={20} fill="#000" />
-      <span>Export JSON</span>
+      <ExportIcon width={20} fill="#000" />
+      <span>Export</span>
     </button>
   );
-}
+};
+
+export default ExportButton;

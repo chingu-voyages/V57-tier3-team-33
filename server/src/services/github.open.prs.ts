@@ -4,7 +4,7 @@ import {
   GitHubServiceOptions,
   GitHubError
 } from "../types/github.types";
-import { FormattedPullRequest } from "../types/formatted.types";
+import { FormattedPullRequest, RepoWithPRs } from "../types/formatted.types";
 import { PullRequestDTO } from "../dtos/PullRequestDTO";
 import { fetchLastReviewOfPullRequest } from "./github.repos";
 
@@ -28,7 +28,7 @@ async function getAllPRsForUser(
   username: string,
   state: PRState = "open",
   options: GitHubServiceOptions = {}
-): Promise<FormattedPullRequest[]> {
+): Promise<RepoWithPRs[]> {
   try {
     const { perPage = 30, page = 1 } = options;
     const accountType = await getUserType(octokit, username);
@@ -71,7 +71,18 @@ async function getAllPRsForUser(
 
     const formatted: FormattedPullRequest[] = items.map((item: any) => PullRequestDTO.fromGitHubSearchAPIToModel(item));
 
-    return formatted;
+    const byRepo = new Map<string, FormattedPullRequest[]>();
+    for (const pr of formatted) {
+      if (!byRepo.has(pr.repo)) byRepo.set(pr.repo, []);
+      byRepo.get(pr.repo)!.push(pr);
+    }
+
+    const grouped: RepoWithPRs[] = Array.from(byRepo.entries()).map(([repo, pullRequests]) => ({
+      repo,
+      pullRequests
+    }));
+
+    return grouped;
   } catch (error: any) {
     const githubError: GitHubError = {
       message: error.message || `Error fetching ${state} pull requests for user ${username}`,

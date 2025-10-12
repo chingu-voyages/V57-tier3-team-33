@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import GraphicActivity from "../components/layout/GraphicActivity";
 import TopContributers from "../components/layout/TopContributers";
 import { useToken } from "../hooks/useToken";
@@ -7,6 +6,7 @@ import PRStatusStat from "../components/statistics/PRStatusStat";
 import { PullRequest } from "../types/PullRequest.types";
 import RepoForm from "../components/RepoForm";
 import LottieLoader from "../components/ui/LottieLoader";
+import { useState } from "react";
 
 export default function DashBoard() {
   const [owner, setOwner] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function DashBoard() {
     <>
       {" "}
       <main className="max-w-screen-xl mx-auto py-8 px-4">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8">
+        <div className="flex flex-col lg:flex-row justify-between lg:items-end mb-8">
           <div>
             <h2 className="font-bold text-3xl text-gray-800 mb-2">
               Analytics Dashboard
@@ -35,19 +35,26 @@ export default function DashBoard() {
             </p>
           </div>
 
-          <RepoForm handleSubmit={handleSubmit} isLoading={isLoading} className="w-auto self-end" />
+          <RepoForm handleSubmit={handleSubmit} />
         </div>
-        {error && <p>Something went wrong: {error.message}</p>}
-        {isLoading && (
-          <div className="flex justify-center items-center py-10">
-            <LottieLoader />
+        {error ?
+          <div className="flex justify-center items-center py-10" style={{ width: 300, height: 300 }}>
+            <p>Somthing went wrong</p>
           </div>
-        )}
-        {!isLoading && data &&
+          :
           <>
-            <PRStatusStat allprs={data.data} />
-            <GraphicActivity allprs={data.data} />
-            <TopContributers allprs={data.data} />
+            {isLoading && (
+              <div className="flex justify-center items-center py-10">
+                <LottieLoader />
+              </div>
+            )}
+            {!isLoading && data &&
+              <>
+                <PRStatusStat allprs={data.data} />
+                <GraphicActivity allprs={data.data} />
+                <TopContributers allprs={data.data} />
+              </>
+            }
           </>
         }
       </main > {" "}

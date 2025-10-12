@@ -2,25 +2,9 @@ import React from 'react'
 
 interface ChildFormProps {
     handleSubmit: (owner: string, repository: string) => void;
-    isLoading: boolean
 }
 
-const RepoForm: React.FC<ChildFormProps> = ({ handleSubmit, isLoading }) => {
-    const inputs = [
-        {
-            id: "owner",
-            label: "Repository Owner",
-            type: "text",
-            placeholder: "Repository Owner"
-        },
-        {
-            id: "repository",
-            label: "Repository",
-            type: "text",
-            placeholder: "Repository"
-        },
-    ]
-
+const RepoForm: React.FC<ChildFormProps> = ({ handleSubmit }) => {
     const formSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -34,7 +18,7 @@ const RepoForm: React.FC<ChildFormProps> = ({ handleSubmit, isLoading }) => {
     return (
         <form
             onSubmit={formSubmitHandler}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div className="flex flex-col">
                 <label
                     htmlFor="owner"
@@ -70,7 +54,7 @@ const RepoForm: React.FC<ChildFormProps> = ({ handleSubmit, isLoading }) => {
             <input
                 type="submit"
                 className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"
-                value={`Apply ${isLoading && "..."}`}
+                value="Apply"
             />
 
         </form>

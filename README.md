@@ -30,22 +30,66 @@
 # Table of Contents
 
 - [Description](#description)
-- [Features](#️features)
+- [Features](#features)
 - [Technologies Used](#technologies-used)
+- [Setup Workspace](#setup-workspace)
+- [Development Commands](#development-commands)
 - [Configuration](#configuration)
 - [Deployment Checklist](#deployment-checklist)
 - [Special Thanks](#special-thanks)
 - [Team Members](#team-members)
 
 ---
-
 ## Description
+PullBoard is your team's mission control for GitHub pull requests.
+
+Get a real-time overview of all open and closed PRs in one dashboard, identify bottlenecks, and track progress with clear, actionable insights. Never lose track of a review with smart filters and highlighted priorities.
+
+Save time by streamlining your workflow, reducing context switching, and making your team's code review process more efficient and transparent.
 
 ## Features
+- User authentication
+- PRs Tracking
+- JSON exporting
+- Advanced filtering
+- Control panel with statistical display of data
+
+## Technologies Used
+
+- `@types/cors`
+- `@types/swagger-jsdoc`
+- `@types/swagger-ui-express`
+- `cors`
+- `dotenv`
+- `express`
+- `firebase-admin`
+- `firebase`
+- `octokit`
+- `swagger-jsdoc`
+- `swagger-ui-express`
+- `@types/express`
+- `@types/node`
+- `nodemon`
+- `ts-node`
+- `typescript`
+- `@tailwindcss/vite`
+- `@tanstack/react-query`
+- `axios`
+- `hamburger-react`
+- `lottie-react`
+- `lottie-web`
+- `react`
+- `react-dom`
+- `react-router-dom`
+- `recharts`
+- `tailwindcss`
+- `@eslint/js`
+- `@testing-library/jest-dom`
+- `@testing-library/react`
+- `vite`
 
 
-
-# Setup Workspace
+## Setup Workspace
 1. Clone the repositiory
 ```bash
 git clone https://github.com/chingu-voyages/V57-tier3-team-33.git
@@ -105,6 +149,12 @@ Set up environment variables for both the server and client. Create the files an
 
 
 
+## Special Thanks
+We as a team would like to thank Chingu platform and community for this opportunity to learn, improve and collaborate. Thank you Chingu!
+
+Chingu is a platform that helps developers and other people in tech related roles practice in-demand skills and accelerate their learning through collaboration and project-building.
+
+Learn more about Chingu platform at https://www.chingu.io/
 
 
 ## Team Members
@@ -114,5 +164,4 @@ Set up environment variables for both the server and client. Create the files an
 - Yusuf Mohsen : [GitHub](https://github.com/yusufmohsiin) / [LinkedIn](https://www.linkedin.com/in/yusuf-mohsiin/)
 - Mohamed Ouederni : [GitHub](https://github.com/9-barristanselmy-9) / [LinkedIn](https://www.linkedin.com/in/mohamed-ouederni-0bb11ab4) 
 - Nazeeha Khalil Ahmed : [GitHub](https://github.com/nazeeha-kb) / [LinkedIn](https://www.linkedin.com/in/nazeeha-kb/) 
-   ...
-- Teammate name #n: [GitHub](https://github.com/ghaccountname) / [LinkedIn](https://linkedin.com/in/liaccountname)
+

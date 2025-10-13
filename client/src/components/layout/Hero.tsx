@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const Hero = () => {
   return (
     <section className="md:h-[80vh] h-[74vh] relative mb-20 overflow-x-hidden">
@@ -20,10 +22,10 @@ const Hero = () => {
           {/* Buttons */}
           <div className="flex md:flex-row gap-6 flex-col justify-center">
             <button className="md:p-2 p-4 md:px-4 px-6 rounded-md bg-black text-white cursor-pointer hover:bg-gray-700">
-              View Open PRs
+              <Link to="/open-prs">View Open PRs</Link>
             </button>
             <button className="border-[0.5px] border-gray-400 md:p-2 p-4 md:px-4 px-6 rounded-md cursor-pointer hover:bg-gray-200">
-              Browse Closed PRs
+              <Link to="/closed-prs">Browse Closed PRs</Link>
             </button>
           </div>
         </div>

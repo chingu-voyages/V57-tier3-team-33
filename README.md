@@ -114,5 +114,4 @@ Set up environment variables for both the server and client. Create the files an
 - Yusuf Mohsen : [GitHub](https://github.com/yusufmohsiin) / [LinkedIn](https://www.linkedin.com/in/yusuf-mohsiin/)
 - Mohamed Ouederni : [GitHub](https://github.com/9-barristanselmy-9) / [LinkedIn](https://www.linkedin.com/in/mohamed-ouederni-0bb11ab4) 
 - Nazeeha Khalil Ahmed : [GitHub](https://github.com/nazeeha-kb) / [LinkedIn](https://www.linkedin.com/in/nazeeha-kb/) 
-   ...
-- Teammate name #n: [GitHub](https://github.com/ghaccountname) / [LinkedIn](https://linkedin.com/in/liaccountname)
+

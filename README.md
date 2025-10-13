@@ -32,6 +32,8 @@
 - [Description](#description)
 - [Features](#features)
 - [Technologies Used](#technologies-used)
+- [Setup Workspace](#setup-workspace)
+- [Development Commands](#development-commands)
 - [Configuration](#configuration)
 - [Deployment Checklist](#deployment-checklist)
 - [Special Thanks](#special-thanks)
@@ -57,39 +59,37 @@ Save time by streamlining your workflow, reducing context switching, and making 
 - `@types/cors`
 - `@types/swagger-jsdoc`
 - `@types/swagger-ui-express`
-- `@radix-ui/*`
-- `@reduxjs/toolkit`
-- `@tailwindcss`
-- `clsx`
-- `cookie-parser`
 - `cors`
-- `eslint`
+- `dotenv`
 - `express`
-- `express-rate-limit`
-- `express-session`
-- `googleapis`
-- `jest`
-- `js-yaml`
-- `jsonwebtoken`
+- `firebase-admin`
+- `firebase`
 - `octokit`
-- `playwright`
-- `prettier`
-- `react`
-- `react-dom`
-- `react-hook-form`
-- `react-redux`
-- `react-router-dom`
-- `sonner`
 - `swagger-jsdoc`
 - `swagger-ui-express`
+- `@types/express`
+- `@types/node`
+- `nodemon`
 - `ts-node`
 - `typescript`
-- `uuid`
+- `@tailwindcss/vite`
+- `@tanstack/react-query`
+- `axios`
+- `hamburger-react`
+- `lottie-react`
+- `lottie-web`
+- `react`
+- `react-dom`
+- `react-router-dom`
+- `recharts`
+- `tailwindcss`
+- `@eslint/js`
+- `@testing-library/jest-dom`
+- `@testing-library/react`
 - `vite`
-- `zod`
 
 
-# Setup Workspace
+## Setup Workspace
 1. Clone the repositiory
 ```bash
 git clone https://github.com/chingu-voyages/V57-tier3-team-33.git
@@ -149,6 +149,12 @@ Set up environment variables for both the server and client. Create the files an
 
 
 
+## Special Thanks
+We as a team would like to thank Chingu platform and community for this opportunity to learn, improve and collaborate. Thank you Chingu!
+
+Chingu is a platform that helps developers and other people in tech related roles practice in-demand skills and accelerate their learning through collaboration and project-building.
+
+Learn more about Chingu platform at https://www.chingu.io/
 
 
 ## Team Members

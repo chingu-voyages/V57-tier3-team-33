@@ -68,6 +68,44 @@ npm run dev:client
 npm run dev          # Start both
 ```
 
+## Configuration
+
+### Environment Variables
+
+Set up environment variables for both the server and client. Create the files and values below before running the app.
+
+- Server env file: `server/.env`
+- Client env files: `client/.env.development` (local dev), `client/.env.production` (production builds)
+
+#### Server (`server/.env`)
+- `PORT` 
+- `TYPE` — Firebase service account `type` 
+- `PROJECT_ID` — Firebase project ID
+- `PRIVATE_KEY_ID` — Service account private key ID
+- `PRIVATE_KEY` — Service account private key.
+- `CLIENT_EMAIL` — Service account client email
+- `CLIENT_ID` — Service account client ID
+- `AUTH_URI` — OAuth auth URI 
+- `TOKEN_URI` — OAuth token URI 
+- `AUTH_PROVIDER_X509_CERT_URL` 
+- `CLIENT_X509_CERT_URL` — Client X509 cert URL
+- `UNIVERSE_DOMAIN` — Universe domain (e.g., `googleapis.com`)
+
+
+
+#### Client (`client/.env.development` )
+- `VITE_API_URL` — Base URL of your API (e.g., `http://localhost:4000`)
+- `TEST_API_URL` — Optional fallback API URL used in `axios` setup
+- `VITE_APIKEY` — Firebase Web API key
+- `VITE_AUTHDOMAIN` — Firebase auth domain
+- `VITE_PROJECTID` — Firebase project ID
+- `VITE_STORAGEBUCKET` — Firebase storage bucket
+- `VITE_MESSAGINGSENDERID` — Firebase messaging sender ID
+- `VITE_APPID` — Firebase app ID
+
+
+
+
 
 ## Team Members
 - Banto Klára : [GitHub](https://github.com/bantoklara) / [LinkedIn](https://www.linkedin.com/in/banto-laczi-klara/)

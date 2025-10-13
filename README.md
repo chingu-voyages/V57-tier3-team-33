@@ -30,7 +30,7 @@
 # Table of Contents
 
 - [Description](#description)
-- [Features](#️features)
+- [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Configuration](#configuration)
 - [Deployment Checklist](#deployment-checklist)
@@ -54,6 +54,39 @@ Save time by streamlining your workflow, reducing context switching, and making 
 
 ## Technologies Used
 
+- `@types/cors`
+- `@types/swagger-jsdoc`
+- `@types/swagger-ui-express`
+- `@radix-ui/*`
+- `@reduxjs/toolkit`
+- `@tailwindcss`
+- `clsx`
+- `cookie-parser`
+- `cors`
+- `eslint`
+- `express`
+- `express-rate-limit`
+- `express-session`
+- `googleapis`
+- `jest`
+- `js-yaml`
+- `jsonwebtoken`
+- `octokit`
+- `playwright`
+- `prettier`
+- `react`
+- `react-dom`
+- `react-hook-form`
+- `react-redux`
+- `react-router-dom`
+- `sonner`
+- `swagger-jsdoc`
+- `swagger-ui-express`
+- `ts-node`
+- `typescript`
+- `uuid`
+- `vite`
+- `zod`
 
 
 # Setup Workspace

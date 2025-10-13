@@ -38,10 +38,21 @@
 - [Team Members](#team-members)
 
 ---
-
 ## Description
+PullBoard is your team's mission control for GitHub pull requests.
+
+Get a real-time overview of all open and closed PRs in one dashboard, identify bottlenecks, and track progress with clear, actionable insights. Never lose track of a review with smart filters and highlighted priorities.
+
+Save time by streamlining your workflow, reducing context switching, and making your team's code review process more efficient and transparent.
 
 ## Features
+- User authentication
+- PRs Tracking
+- JSON exporting
+- Advanced filtering
+- Control panel with statistical display of data
+
+## Technologies Used
 
 
 

@@ -12,36 +12,36 @@ const Footer: React.FC = () => {
     "Front-end Developers": [
       {
         name: "Tibamwenda Anthony",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/tibamwenda-anthony-64144820b/",
         github: "https://github.com/AskTiba",
       },
       {
         name: "Nazeeha Khalil Ahmed",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/nazeeha-kb/",
         github: "https://github.com/nazeeha-kb",
       },
     ],
     "Back-end Developers": [
       {
         name: "Banto Klára",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/banto-laczi-klara/",
         github: "https://github.com/bantoklara",
       },
       {
         name: "Henok Hailemariam",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/henokkhm",
         github: "https://github.com/henokkhm",
       },
       {
         name: "Mohamed Ouederni",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/mohamed-ouederni-0bb11ab4",
         github: "https://github.com/9-barristanselmy-9",
       },
     ],
     "Product Designer": [
       {
         name: "Yusuf Mohsen",
-        linkedIn: "#",
+        linkedIn: "https://www.linkedin.com/in/yusuf-mohsiin/",
         github: "https://github.com/yusufmohsiin",
       },
     ],
